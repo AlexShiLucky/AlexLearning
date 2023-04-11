@@ -93,7 +93,7 @@ static const shape_vtbl_t g_circle_vtbl = {
  */
 static float circle_area(shape_t const * const super)
 {
-    circle_t *self = CIRCLE(super);
+    circle_t *self = (circle_t *)super->child;
     circle_priv_t *priv = (circle_priv_t *)self->priv;
     float radius = priv->diameter / 2;
 
@@ -111,7 +111,7 @@ static float circle_area(shape_t const * const super)
  */
 static float circle_perimeter(shape_t const * const super)
 {
-    circle_t *self = CIRCLE(super);
+    circle_t *self = (circle_t *)super->child;
     circle_priv_t *priv = (circle_priv_t *)self->priv;
 
     return (DEF_PI*priv->diameter);
@@ -128,7 +128,7 @@ static float circle_perimeter(shape_t const * const super)
  */
 static void circle_draw(shape_t const * const super)
 {
-    circle_t *self = CIRCLE(super);
+    circle_t *self = (circle_t *)super->child;
     circle_priv_t *priv = (circle_priv_t *)self->priv;
 
     printf("I'm Circle, diameter:%.3f\n", priv->diameter);
@@ -145,7 +145,7 @@ static void circle_draw(shape_t const * const super)
  */
 static void circle_distory(shape_t * const super)
 {
-    circle_t *self = CIRCLE(super);
+    circle_t *self = (circle_t *)super->child;
     circle_priv_t *priv = (circle_priv_t *)self->priv;
 
     printf("Distory %s\n", super->name);
@@ -185,14 +185,21 @@ shape_t* circle_create(float diameter)
         printf("It's not enough memory.\n");
         goto _err2;
     }
+
+    super = shape_create(&g_circle_vtbl, SHAPE_Circle, "circle", self);
+    if (!super) {
+        printf("It's not enough memory.\n");
+        goto _err3;
+    }
+
     priv->diameter = diameter;
     self->priv = priv;
-
-    super = SHAPE(self);
-    shape_init(super, &g_circle_vtbl, SHAPE_Circle, "circle");
+    self->super = super;
     printf("Create %s OK.\n", super->name);
     return super;
 
+_err3:
+    free(priv);
 _err2:
     free(self);
 _err1:

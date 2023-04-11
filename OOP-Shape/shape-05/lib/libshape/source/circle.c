@@ -187,11 +187,11 @@ circle_t* circle_create(float diameter)
     super = SHAPE(self);
     shape_init(super, &g_circle_vtbl, SHAPE_Circle, "circle");
     printf("Create %s OK.\n", super->name);
-_err1:
     return self;
 
 _err2:
     free(self);
+_err1:
     return NULL;
 }
 

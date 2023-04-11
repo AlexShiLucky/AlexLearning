@@ -83,7 +83,7 @@
   static void circle_draw(shape_t const * const super);
   static void circle_distory(shape_t * const super);
   
-  /* 对父类虚接口的实现 */
+  /* 子类实现父类的虚表 */
   static const shape_vtbl_t g_circle_vtbl = {
       .area = &circle_area,
       .perimeter = &circle_perimeter,
@@ -136,7 +136,7 @@
           goto _err1;
       }
   
-      super = shape_create(&g_circle_vtbl, SHAPE_Circle, "circle", self);
+  	super = shape_create(&g_circle_vtbl, SHAPE_Circle, "circle", self);
       if (!super) {
           printf("It's not enough memory.\n");
           goto _err2;
@@ -145,11 +145,11 @@
       self->diameter = diameter;
       self->super = super;
       printf("Create %s OK.\n", super->name);
-  _err1:
       return super;
   
   _err2:
       free(self);
+  _err1:
       return NULL;
   }
   ```
@@ -205,5 +205,7 @@
       const shape_vtbl_t *vtbl = self->vtbl;
   
       vtbl->distory(self);
+  
+      free(self);
   }
   ```

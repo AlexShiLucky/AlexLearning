@@ -166,7 +166,36 @@
 - 子类在创建时，除了初始化自有属性还需初始化父类的属性和虚表，以圆类为例；
   
   ```c
+  shape_t* circle_create(float diameter)
+  {
+      shape_t *super = NULL;
+      circle_t *self = NULL;
+      circle_priv_t *priv = NULL;
   
+      self = (circle_t *)malloc(sizeof(circle_t));
+      if (!self) {
+          printf("It's not enough memory.\n");
+          goto _err1;
+      }
+  
+      priv = (circle_priv_t *)malloc(sizeof(circle_priv_t));
+      if (!priv) {
+          printf("It's not enough memory.\n");
+          goto _err2;
+      }
+      priv->diameter = diameter;
+      self->priv = priv;
+  
+      super = SHAPE(self);
+      shape_init(super, &g_circle_vtbl, SHAPE_Circle, "circle");
+      printf("Create %s OK.\n", super->name);
+      return super;
+  
+  _err2:
+      free(self);
+  _err1:
+      return NULL;
+  }
   ```
 
 - 父类提供下层(子类)调用的API，子类通过调用父类提供的初始化方法来初始化父类；

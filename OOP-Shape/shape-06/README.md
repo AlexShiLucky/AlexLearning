@@ -124,7 +124,7 @@
   ```c
   shape_t* circle_create(float diameter)
   {
-      shape_t *super = NULL;
+  	shape_t *super = NULL;
       circle_t *self = NULL;
   
       self = (circle_t *)malloc(sizeof(circle_t));
@@ -133,7 +133,7 @@
           goto _err1;
       }
   
-      super = shape_create(&g_circle_vtbl, SHAPE_Circle, "circle", self);
+  	super = shape_create(&g_circle_vtbl, SHAPE_Circle, "circle", self);
       if (!super) {
           printf("It's not enough memory.\n");
           goto _err2;
@@ -142,11 +142,11 @@
       self->diameter = diameter;
       self->super = super;
       printf("Create %s OK.\n", super->name);
-  _err1:
       return super;
   
   _err2:
       free(self);
+  _err1:
       return NULL;
   }
   ```

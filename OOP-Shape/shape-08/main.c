@@ -1,6 +1,6 @@
 /*
 ********************************************************************************
-* shape.c
+* main.c
 *
 *   Author: AlexShi <shiweining123@gmail.com>
 *
@@ -13,7 +13,12 @@
 ********************************************************************************
 */
 
+#include <stdio.h>
+
 #include "shape.h"
+#include "circle.h"
+#include "triangle.h"
+#include "rectangle.h"
 
 /*
 ********************************************************************************
@@ -88,97 +93,40 @@
 */
 
 /*
- * @brief 形状初始化
+ * @brief
  *
  * @param
  *
- * @return 无
+ * @return
  *
  * @notes
  */
-shape_t* shape_create(shape_vtbl_t const *vtbl, int type, const char *name, void *child)
+int main(int argc, char *argv[])
 {
-    shape_t *self = NULL;
+    (void)argc;
+    (void)argv;
 
-    self = (shape_t *)malloc(sizeof(shape_t));
-    if (!self) {
-        printf("It's not enough memory.\n");
-        return NULL;
+    shape_t *s[6];
+    s[0] = triangle_create(5.0f, 5.0f, 4.0f);
+    s[1] = triangle_create(3.0f, 4.0f, 5.0f);
+    s[2] = rectangle_create(10.0f, 12.0f);
+    s[3] = rectangle_create(5.0f, 8.0f);
+    s[4] = circle_create(10.0f);
+    s[5] = circle_create(2.0f);
+
+    int i = 0;
+    for (i = 0; i < 6; i++) {
+        float area = shape_area(s[i]);
+        float perimeter = shape_perimeter(s[i]);
+        const char* name = s[i]->name;
+        printf("[%s], area:%.3f, perimeter:%.3f\n", name, area, perimeter);
+        shape_draw(s[i]);
+
+        shape_distory(s[i]);
     }
-
-    self->type = type;
-    self->name = name;
-    self->vtbl  = vtbl;
-    self->child = child;
-
-    return self;
+    return 0;
 }
 
-/*
- * @brief 计算形状面积
- *
- * @param
- *
- * @return 面积值
- *
- * @notes
- */
-float shape_area(shape_t const * const self)
-{
-    const shape_vtbl_t *vtbl = self->vtbl;
-
-    return vtbl->area(self);
-}
-
-/*
- * @brief 计算形状的周长
- *
- * @param
- *
- * @return 周长值
- *
- * @notes
- */
-float shape_perimeter(shape_t const * const self)
-{
-    const shape_vtbl_t *vtbl = self->vtbl;
-
-    return vtbl->perimeter(self);
-}
-
-/*
- * @brief 画出形状
- *
- * @param
- *
- * @return 无
- *
- * @notes
- */
-void shape_draw(shape_t const * const self)
-{
-    const shape_vtbl_t *vtbl = self->vtbl;
-
-    return vtbl->draw(self);
-}
-
-/*
- * @brief 销毁形状
- *
- * @param
- *
- * @return 无
- *
- * @notes
- */
-void shape_distory(shape_t * const self)
-{
-    const shape_vtbl_t *vtbl = self->vtbl;
-
-    vtbl->distory(self);
-
-    free(self);
-}
 
 /*
 ********************************************************************************

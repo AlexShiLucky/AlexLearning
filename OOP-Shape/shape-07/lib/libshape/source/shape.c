@@ -176,6 +176,8 @@ void shape_distory(shape_t * const self)
     const shape_vtbl_t *vtbl = self->vtbl;
 
     vtbl->distory(self);
+
+    free(self);
 }
 
 /*

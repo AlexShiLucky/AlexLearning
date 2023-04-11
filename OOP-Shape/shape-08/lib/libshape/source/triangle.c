@@ -1,6 +1,6 @@
 /*
 ********************************************************************************
-* circle.c
+* triangle.c
 *
 *   Author: AlexShi <shiweining123@gmail.com>
 *
@@ -13,7 +13,7 @@
 ********************************************************************************
 */
 
-#include "circle.h"
+#include "triangle.h"
 
 /*
 ********************************************************************************
@@ -37,10 +37,13 @@
 ********************************************************************************
 */
 
-typedef struct _circle_priv circle_priv_t;
+typedef struct _triangle_priv triangle_priv_t;
 
-struct _circle_priv {
-    float diameter;
+/* 子类:矩形私有数据 */
+struct _triangle_priv {
+    float a;
+    float b;
+    float c;
 };
 
 /*
@@ -49,10 +52,10 @@ struct _circle_priv {
 ********************************************************************************
 */
 
-static float circle_area(shape_t const * const super);
-static float circle_perimeter(shape_t const * const super);
-static void circle_draw(shape_t const * const super);
-static void circle_distory(shape_t * const super);
+static float triangle_area(shape_t const * const super);
+static float triangle_perimeter(shape_t const * const super);
+static void triangle_draw(shape_t const * const super);
+static void triangle_distory(shape_t * const super);
 
 /*
 ********************************************************************************
@@ -69,11 +72,11 @@ static void circle_distory(shape_t * const super);
 */
 
 /* 子类实现父类的虚表 */
-static const shape_vtbl_t g_circle_vtbl = {
-    .area = &circle_area,
-    .perimeter = &circle_perimeter,
-    .draw = &circle_draw,
-    .distory = &circle_distory
+static const shape_vtbl_t g_triangle_vtbl = {
+    .area = &triangle_area,
+    .perimeter = &triangle_perimeter,
+    .draw = &triangle_draw,
+    .distory = &triangle_distory
 };
 
 /*
@@ -83,7 +86,7 @@ static const shape_vtbl_t g_circle_vtbl = {
 */
 
 /*
- * @brief 计算圆面积
+ * @brief 计算三角形面积
  *
  * @param
  *
@@ -91,17 +94,20 @@ static const shape_vtbl_t g_circle_vtbl = {
  *
  * @notes
  */
-static float circle_area(shape_t const * const super)
+static float triangle_area(shape_t const * const super)
 {
-    circle_t *self = CIRCLE(super);
-    circle_priv_t *priv = (circle_priv_t *)self->priv;
-    float radius = priv->diameter / 2;
+    triangle_t *self = (triangle_t *)super->child;
+    triangle_priv_t *priv = (triangle_priv_t *)self->priv;
+    float a = priv->a;
+    float b = priv->b;
+    float c = priv->c;
+    float p = (a + b + c) / 2;
 
-    return (DEF_PI * radius * radius);
+    return sqrt(p*(p-a)*(p-b)*(p-c));
 }
 
 /*
- * @brief 计算圆周长
+ * @brief 计算三角形周长
  *
  * @param
  *
@@ -109,12 +115,15 @@ static float circle_area(shape_t const * const super)
  *
  * @notes
  */
-static float circle_perimeter(shape_t const * const super)
+static float triangle_perimeter(shape_t const * const super)
 {
-    circle_t *self = CIRCLE(super);
-    circle_priv_t *priv = (circle_priv_t *)self->priv;
+    triangle_t *self = (triangle_t *)super->child;
+    triangle_priv_t *priv = (triangle_priv_t *)self->priv;
+    float a = priv->a;
+    float b = priv->b;
+    float c = priv->c;
 
-    return (DEF_PI*priv->diameter);
+    return (a+b+c);
 }
 
 /*
@@ -126,16 +135,16 @@ static float circle_perimeter(shape_t const * const super)
  *
  * @notes
  */
-static void circle_draw(shape_t const * const super)
+static void triangle_draw(shape_t const * const super)
 {
-    circle_t *self = CIRCLE(super);
-    circle_priv_t *priv = (circle_priv_t *)self->priv;
+    triangle_t *self = (triangle_t *)super->child;
+    triangle_priv_t *priv = (triangle_priv_t *)self->priv;
 
-    printf("I'm Circle, diameter:%.3f\n", priv->diameter);
+    printf("I'm Triangle, a:%.3f, b:%.3f, c:%.3f\n", priv->a, priv->b, priv->c);
 }
 
 /*
- * @brief 销毁矩形
+ * @brief 销毁三角形
  *
  * @param
  *
@@ -143,15 +152,16 @@ static void circle_draw(shape_t const * const super)
  *
  * @notes
  */
-static void circle_distory(shape_t * const super)
+static void triangle_distory(shape_t * const super)
 {
-    circle_t *self = CIRCLE(super);
-    circle_priv_t *priv = (circle_priv_t *)self->priv;
+    triangle_t *self = (triangle_t *)super->child;
+    triangle_priv_t *priv = (triangle_priv_t *)self->priv;
 
     printf("Distory %s\n", super->name);
     free(priv);    /* 释放子类私有数据 */
     free(self);    /* 释放子类数据 */
 }
+
 
 /*
 ********************************************************************************
@@ -160,44 +170,56 @@ static void circle_distory(shape_t * const super)
 */
 
 /*
- * @brief 创建圆
+ * @brief 创建三角形
  *
- * @param diameter - 直径
+ * @param a - 三角形一边
+ * @param b - 三角形一边
+ * @param c - 三角形一边
  *
- * @return 矩形句柄
+ * @return 三角形句柄
  *
  * @notes
  */
-shape_t* circle_create(float diameter)
+shape_t* triangle_create(float a, float b, float c)
 {
     shape_t *super = NULL;
-    circle_t *self = NULL;
-    circle_priv_t *priv = NULL;
+    triangle_t *self = NULL;
+    triangle_priv_t *priv = NULL;
 
-    self = (circle_t *)malloc(sizeof(circle_t));
+    self = (triangle_t *)malloc(sizeof(triangle_t));
     if (!self) {
         printf("It's not enough memory.\n");
         goto _err1;
     }
 
-    priv = (circle_priv_t *)malloc(sizeof(circle_priv_t));
+    priv = (triangle_priv_t *)malloc(sizeof(triangle_priv_t));
     if (!priv) {
         printf("It's not enough memory.\n");
         goto _err2;
     }
-    priv->diameter = diameter;
-    self->priv = priv;
 
-    super = SHAPE(self);
-    shape_init(super, &g_circle_vtbl, SHAPE_Circle, "circle");
+    super = shape_create(&g_triangle_vtbl, SHAPE_Triangle, "triangle", self);
+    if (!super) {
+        printf("It's not enough memory.\n");
+        goto _err3;
+    }
+
+    priv->a = a;
+    priv->b = b;
+    priv->c = c;
+    self->priv = priv;
+    self->super = super;
     printf("Create %s OK.\n", super->name);
     return super;
 
+_err3:
+    free(priv);
 _err2:
     free(self);
 _err1:
     return NULL;
 }
+
 
 /*
 ********************************************************************************

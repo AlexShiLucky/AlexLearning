@@ -180,11 +180,11 @@ shape_t* circle_create(float diameter)
     self->diameter = diameter;
     self->super = super;
     printf("Create %s OK.\n", super->name);
-_err1:
     return super;
 
 _err2:
     free(self);
+_err1:
     return NULL;
 }
 
