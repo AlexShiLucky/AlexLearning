@@ -1,14 +1,11 @@
 /*
 ********************************************************************************
-* circle.h
+* shape.c
 *
 *   Author: AlexShi <shiweining123@gmail.com>
 *
 ********************************************************************************
 */
-
-#ifndef __CIRCLE_H
-#define __CIRCLE_H
 
 /*
 ********************************************************************************
@@ -24,7 +21,7 @@
 ********************************************************************************
 */
 
-#define DEF_PI 3.1415926f
+
 
 /*
 ********************************************************************************
@@ -36,7 +33,7 @@
 
 /*
 ********************************************************************************
-* Public Types
+* Private Types
 ********************************************************************************
 */
 
@@ -44,7 +41,7 @@
 
 /*
 ********************************************************************************
-* Inline Functions
+* Private Function Prototypes
 ********************************************************************************
 */
 
@@ -60,7 +57,7 @@
 
 /*
 ********************************************************************************
-* Public Data
+* Private Data
 ********************************************************************************
 */
 
@@ -68,25 +65,118 @@
 
 /*
 ********************************************************************************
-* Public Function Prototypes
+* Private Functions
 ********************************************************************************
 */
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
+/*
+ * @brief
+ *
+ * @param
+ *
+ * @return
+ *
+ * @notes
+ */
 
-EXTERN shape_t* circle_create(float diameter);
 
-#undef EXTERN
-#ifdef __cplusplus
+
+/*
+********************************************************************************
+* Public Functions
+********************************************************************************
+*/
+
+/*
+ * @brief 形状初始化
+ *
+ * @param
+ *
+ * @return 无
+ *
+ * @notes
+ */
+shape_t* shape_create(shape_vtbl_t const *vtbl, int type, const char *name, void *child)
+{
+    shape_t *self = NULL;
+
+    self = (shape_t *)malloc(sizeof(shape_t));
+    if (!self) {
+        printf("It's not enough memory.\n");
+        return NULL;
+    }
+
+    self->type = type;
+    self->name = name;
+    self->vtbl  = vtbl;
+    self->child = child;
+
+    return self;
 }
-#endif
 
-#endif      /* __CIRCLE_H */
+/*
+ * @brief 计算形状面积
+ *
+ * @param
+ *
+ * @return 面积值
+ *
+ * @notes
+ */
+float shape_area(shape_t const * const self)
+{
+    const shape_vtbl_t *vtbl = self->vtbl;
+
+    return vtbl->area(self);
+}
+
+/*
+ * @brief 计算形状的周长
+ *
+ * @param
+ *
+ * @return 周长值
+ *
+ * @notes
+ */
+float shape_perimeter(shape_t const * const self)
+{
+    const shape_vtbl_t *vtbl = self->vtbl;
+
+    return vtbl->perimeter(self);
+}
+
+/*
+ * @brief 画出形状
+ *
+ * @param
+ *
+ * @return 无
+ *
+ * @notes
+ */
+void shape_draw(shape_t const * const self)
+{
+    const shape_vtbl_t *vtbl = self->vtbl;
+
+    return vtbl->draw(self);
+}
+
+/*
+ * @brief 销毁形状
+ *
+ * @param
+ *
+ * @return 无
+ *
+ * @notes
+ */
+void shape_distory(shape_t * const self)
+{
+    const shape_vtbl_t *vtbl = self->vtbl;
+
+    vtbl->distory(self);
+}
 
 /*
 ********************************************************************************

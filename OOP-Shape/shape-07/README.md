@@ -30,6 +30,7 @@
 - circle_t是圆类，继承父类shape_t，包含指向父类的指针；
   
   ```c
+  /* 对外隐藏子类定义 */
   typedef struct _circle circle_t;
   
   /* 子类:圆 */
@@ -44,6 +45,7 @@
 - rectangle_t是矩形类，继承父类shape_t，包含指向父类的指针；
   
   ```c
+  /* 对外隐藏子类定义 */
   typedef struct _rectangle rectangle_t;
   
   /* 子类:矩形 */
@@ -59,6 +61,7 @@
 - triangle_t是三角类，继承父类shape_t，包含指向父类的指针；
   
   ```c
+  /* 对外隐藏子类定义 */
   typedef struct _triangle triangle_t;
   
   /* 子类:三角形 */
