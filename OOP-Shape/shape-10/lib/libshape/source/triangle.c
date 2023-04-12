@@ -1,6 +1,6 @@
 /*
 ********************************************************************************
-* rectangle.c
+* triangle.c
 *
 *   Author: AlexShi <shiweining123@gmail.com>
 *
@@ -13,7 +13,7 @@
 ********************************************************************************
 */
 
-#include "rectangle.h"
+#include "triangle.h"
 
 /*
 ********************************************************************************
@@ -37,12 +37,13 @@
 ********************************************************************************
 */
 
-typedef struct _rectangle_priv rectangle_priv_t;
+typedef struct _triangle_priv triangle_priv_t;
 
 /* 子类:矩形私有数据 */
-struct _rectangle_priv {
-    float width;
-    float height;
+struct _triangle_priv {
+    float a;
+    float b;
+    float c;
 };
 
 /*
@@ -51,10 +52,10 @@ struct _rectangle_priv {
 ********************************************************************************
 */
 
-static float rectangle_area(rectangle_t const * const self);
-static float rectangle_perimeter(rectangle_t const * const self);
-static void rectangle_draw(rectangle_t const * const self);
-static void rectangle_distory(rectangle_t * const self);
+static float triangle_area(triangle_t const * const self);
+static float triangle_perimeter(triangle_t const * const self);
+static void triangle_draw(triangle_t const * const self);
+static void triangle_distory(triangle_t * const self);
 
 /*
 ********************************************************************************
@@ -71,11 +72,11 @@ static void rectangle_distory(rectangle_t * const self);
 */
 
 /* 子类实现父类的虚表 */
-static const shape_vtbl_t g_rectangle_vtbl = {
-    .area = (void *)&rectangle_area,
-    .perimeter = (void *)&rectangle_perimeter,
-    .draw = (void *)&rectangle_draw,
-    .distory = (void *)&rectangle_distory
+static const shape_vtbl_t g_triangle_vtbl = {
+    .area = (void *)&triangle_area,
+    .perimeter = (void *)&triangle_perimeter,
+    .draw = (void *)&triangle_draw,
+    .distory = (void *)&triangle_distory
 };
 
 /*
@@ -85,7 +86,7 @@ static const shape_vtbl_t g_rectangle_vtbl = {
 */
 
 /*
- * @brief 计算矩形面积
+ * @brief 计算三角形面积
  *
  * @param
  *
@@ -93,15 +94,19 @@ static const shape_vtbl_t g_rectangle_vtbl = {
  *
  * @notes
  */
-static float rectangle_area(rectangle_t const * const self)
+static float triangle_area(triangle_t const * const self)
 {
-    rectangle_priv_t *priv = (rectangle_priv_t *)self->priv;
+    triangle_priv_t *priv = (triangle_priv_t *)self->priv;
+    float a = priv->a;
+    float b = priv->b;
+    float c = priv->c;
+    float p = (a + b + c) / 2;
 
-    return (priv->width * priv->height);
+    return sqrt(p*(p-a)*(p-b)*(p-c));
 }
 
 /*
- * @brief 计算矩形周长
+ * @brief 计算三角形周长
  *
  * @param
  *
@@ -109,11 +114,14 @@ static float rectangle_area(rectangle_t const * const self)
  *
  * @notes
  */
-static float rectangle_perimeter(rectangle_t const * const self)
+static float triangle_perimeter(triangle_t const * const self)
 {
-    rectangle_priv_t *priv = (rectangle_priv_t *)self->priv;
+    triangle_priv_t *priv = (triangle_priv_t *)self->priv;
+    float a = priv->a;
+    float b = priv->b;
+    float c = priv->c;
 
-    return (priv->width + priv->height)*2;
+    return (a+b+c);
 }
 
 /*
@@ -125,15 +133,15 @@ static float rectangle_perimeter(rectangle_t const * const self)
  *
  * @notes
  */
-static void rectangle_draw(rectangle_t const * const self)
+static void triangle_draw(triangle_t const * const self)
 {
-    rectangle_priv_t *priv = (rectangle_priv_t *)self->priv;
+    triangle_priv_t *priv = (triangle_priv_t *)self->priv;
 
-    printf("I'm Rectangele, width:%.3f, height:%.3f\n", priv->width, priv->height);
+    printf("I'm Triangle, a:%.3f, b:%.3f, c:%.3f\n", priv->a, priv->b, priv->c);
 }
 
 /*
- * @brief 销毁矩形
+ * @brief 销毁三角形
  *
  * @param
  *
@@ -141,9 +149,9 @@ static void rectangle_draw(rectangle_t const * const self)
  *
  * @notes
  */
-static void rectangle_distory(rectangle_t * const self)
+static void triangle_distory(triangle_t * const self)
 {
-    rectangle_priv_t *priv = (rectangle_priv_t *)self->priv;
+    triangle_priv_t *priv = (triangle_priv_t *)self->priv;
 
     printf("Distory %s\n", SHAPE(self)->name);
     free(priv);    /* 释放子类私有数据 */
@@ -158,41 +166,50 @@ static void rectangle_distory(rectangle_t * const self)
 */
 
 /*
- * @brief 创建矩形
+ * @brief 创建三角形
  *
- * @param width - 矩形宽度
- * @param height - 矩形高度
+ * @param a - 三角形一边
+ * @param b - 三角形一边
+ * @param c - 三角形一边
  *
- * @return 矩形句柄
+ * @return 三角形句柄
  *
  * @notes
  */
-rectangle_t* rectangle_create(float width, float height)
+triangle_t* triangle_create(float a, float b, float c)
 {
     shape_t *super = NULL;
-    rectangle_t *self = NULL;
-    rectangle_priv_t *priv = NULL;
+    triangle_t *self = NULL;
+    triangle_priv_t *priv = NULL;
 
-    self = (rectangle_t *)malloc(sizeof(rectangle_t));
+    self = (triangle_t *)malloc(sizeof(triangle_t));
     if (!self) {
         printf("It's not enough memory.\n");
         goto _err1;
     }
 
-    priv = (rectangle_priv_t *)malloc(sizeof(rectangle_priv_t));
+    priv = (triangle_priv_t *)malloc(sizeof(triangle_priv_t));
     if (!priv) {
         printf("It's not enough memory.\n");
         goto _err2;
     }
-    priv->height = height;
-    priv->width = width;
-    self->priv = priv;
 
-    super = SHAPE(self);
-    shape_init(super, &g_rectangle_vtbl, SHAPE_Rectangle, "rectangle");
+    super = shape_create(&g_triangle_vtbl, SHAPE_Triangle, "triangle", self);
+    if (!super) {
+        printf("It's not enough memory.\n");
+        goto _err3;
+    }
+
+    priv->a = a;
+    priv->b = b;
+    priv->c = c;
+    self->priv = priv;
+    self->super = super;
     printf("Create %s OK.\n", super->name);
     return self;
 
+_err3:
+    free(priv);
 _err2:
     free(self);
 _err1:

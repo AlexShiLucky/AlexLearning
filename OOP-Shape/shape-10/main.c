@@ -1,6 +1,6 @@
 /*
 ********************************************************************************
-* rectangle.c
+* main.c
 *
 *   Author: AlexShi <shiweining123@gmail.com>
 *
@@ -13,6 +13,11 @@
 ********************************************************************************
 */
 
+#include <stdio.h>
+
+#include "shape.h"
+#include "circle.h"
+#include "triangle.h"
 #include "rectangle.h"
 
 /*
@@ -39,17 +44,13 @@
 
 
 
-
 /*
 ********************************************************************************
 * Private Function Prototypes
 ********************************************************************************
 */
 
-static float rectangle_area(shape_t const * const super);
-static float rectangle_perimeter(shape_t const * const super);
-static void rectangle_draw(shape_t const * const super);
-static void rectangle_distory(shape_t * const super);
+
 
 /*
 ********************************************************************************
@@ -65,13 +66,7 @@ static void rectangle_distory(shape_t * const super);
 ********************************************************************************
 */
 
-/* 子类实现父类的虚表 */
-static const shape_vtbl_t g_rectangle_vtbl = {
-    .area = &rectangle_area,
-    .perimeter = &rectangle_perimeter,
-    .draw = &rectangle_draw,
-    .distory = &rectangle_distory
-};
+
 
 /*
 ********************************************************************************
@@ -80,69 +75,15 @@ static const shape_vtbl_t g_rectangle_vtbl = {
 */
 
 /*
- * @brief 计算矩形面积
+ * @brief
  *
  * @param
  *
- * @return 面积值
+ * @return
  *
  * @notes
  */
-static float rectangle_area(shape_t const * const super)
-{
-    rectangle_t *self = (rectangle_t *)super->child;
 
-    return (self->width * self->height);
-}
-
-/*
- * @brief 计算矩形周长
- *
- * @param
- *
- * @return 周长值
- *
- * @notes
- */
-static float rectangle_perimeter(shape_t const * const super)
-{
-    rectangle_t *self = (rectangle_t *)super->child;
-
-    return (self->width + self->height)*2;
-}
-
-/*
- * @brief 画出矩形
- *
- * @param
- *
- * @return 无
- *
- * @notes
- */
-static void rectangle_draw(shape_t const * const super)
-{
-    rectangle_t *self = (rectangle_t *)super->child;
-
-    printf("I'm Rectangele, width:%.3f, height:%.3f\n", self->width, self->height);
-}
-
-/*
- * @brief 销毁矩形
- *
- * @param
- *
- * @return 无
- *
- * @notes
- */
-static void rectangle_distory(shape_t * const super)
-{
-    rectangle_t *self = (rectangle_t *)super->child;
-
-    printf("Distory %s\n", super->name);
-    free(self);    /* 释放子类数据 */
-}
 
 
 /*
@@ -152,42 +93,38 @@ static void rectangle_distory(shape_t * const super)
 */
 
 /*
- * @brief 创建矩形
+ * @brief
  *
- * @param width - 矩形宽度
- * @param height - 矩形高度
+ * @param
  *
- * @return 矩形句柄
+ * @return
  *
  * @notes
  */
-shape_t* rectangle_create(float width, float height)
+int main(int argc, char *argv[])
 {
-    shape_t *super = NULL;
-    rectangle_t *self = NULL;
+    (void)argc;
+    (void)argv;
 
-    self = (rectangle_t *)malloc(sizeof(rectangle_t));
-    if (!self) {
-        printf("It's not enough memory.\n");
-        goto _err1;
+    shape_t *s[6];
+    s[0] = SHAPE(triangle_create(5.0f, 5.0f, 4.0f));
+    s[1] = SHAPE(triangle_create(3.0f, 4.0f, 5.0f));
+    s[2] = SHAPE(rectangle_create(10.0f, 12.0f));
+    s[3] = SHAPE(rectangle_create(5.0f, 8.0f));
+    s[4] = SHAPE(circle_create(10.0f));
+    s[5] = SHAPE(circle_create(2.0f));
+
+    int i = 0;
+    for (i = 0; i < 6; i++) {
+        float area = shape_area(s[i]);
+        float perimeter = shape_perimeter(s[i]);
+        const char* name = s[i]->name;
+        printf("[%s], area:%.3f, perimeter:%.3f\n", name, area, perimeter);
+        shape_draw(s[i]);
+
+        shape_distory(s[i]);
     }
-
-	super = shape_create(&g_rectangle_vtbl, SHAPE_Rectangle, "rectangle", self);
-    if (!super) {
-        printf("It's not enough memory.\n");
-        goto _err2;
-    }
-
-    self->height = height;
-    self->width  = width;
-    self->super = super;
-    printf("Create %s OK.\n", super->name);
-    return super;
-
-_err2:
-    free(self);
-_err1:
-    return NULL;
+    return 0;
 }
 
 

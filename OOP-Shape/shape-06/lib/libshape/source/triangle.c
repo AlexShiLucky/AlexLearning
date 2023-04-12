@@ -191,11 +191,11 @@ shape_t* triangle_create(float a, float b, float c)
     self->c = c;
     self->super = super;
     printf("Create %s OK.\n", super->name);
-_err1:
     return super;
 
 _err2:
     free(self);
+_err1:
     return NULL;
 }
 

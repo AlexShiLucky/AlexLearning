@@ -1,14 +1,14 @@
 /*
 ********************************************************************************
-* triangle.h
+* rectangle.h
 *
 *   Author: AlexShi <shiweining123@gmail.com>
 *
 ********************************************************************************
 */
 
-#ifndef __TRIANGLE_H
-#define __TRIANGLE_H
+#ifndef __RECTANGLE_H
+#define __RECTANGLE_H
 
 /*
 ********************************************************************************
@@ -24,7 +24,7 @@
 ********************************************************************************
 */
 
-#define TRIANGLE(object)   ((triangle_t *)(object))
+#define RECTANGLE(object)   ((rectangle_t *)(object))
 
 /*
 ********************************************************************************
@@ -40,12 +40,12 @@
 ********************************************************************************
 */
 
-typedef struct _triangle triangle_t;
+typedef struct _rectangle rectangle_t;
 
-/* 子类:三角形 */
-struct _triangle {
-    /* 将父类定义在子类的第一个元素,来继承父类 */
-    shape_t super;
+/* 子类:矩形 */
+struct _rectangle {
+    /* 指向父类的指针 */
+    shape_t *super;
     /* 子类私有属性 */
     void *priv;
 };
@@ -87,14 +87,14 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-EXTERN triangle_t* triangle_create(float a, float b, float c);
+EXTERN rectangle_t* rectangle_create(float width, float height);
 
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
-#endif      /* __TRIANGLE_H */
+#endif      /* __RECTANGLE_H */
 
 /*
 ********************************************************************************

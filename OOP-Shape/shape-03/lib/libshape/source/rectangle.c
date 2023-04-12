@@ -195,11 +195,11 @@ shape_t* rectangle_create(float width, float height)
     super = SHAPE(self);
     shape_init(super, &g_rectangle_vtbl, SHAPE_Rectangle, "rectangle");
     printf("Create %s OK.\n", super->name);
-_err1:
     return super;
 
 _err2:
     free(self);
+_err1:
     return NULL;
 }
 

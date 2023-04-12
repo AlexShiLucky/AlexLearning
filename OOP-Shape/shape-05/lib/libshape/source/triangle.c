@@ -201,11 +201,11 @@ triangle_t* triangle_create(float a, float b, float c)
 	super = SHAPE(self);
     shape_init(super, &g_triangle_vtbl, SHAPE_Triangle, "triangle");
     printf("Create %s OK.\n", super->name);
-_err1:
     return self;
 
 _err2:
     free(self);
+_err1:
     return NULL;
 }
 

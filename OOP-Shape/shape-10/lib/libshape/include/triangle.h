@@ -44,8 +44,8 @@ typedef struct _triangle triangle_t;
 
 /* 子类:三角形 */
 struct _triangle {
-    /* 将父类定义在子类的第一个元素,来继承父类 */
-    shape_t super;
+    /* 指向父类的指针 */
+    shape_t *super;
     /* 子类私有属性 */
     void *priv;
 };

@@ -1,14 +1,14 @@
 /*
 ********************************************************************************
-* triangle.h
+* circle.h
 *
 *   Author: AlexShi <shiweining123@gmail.com>
 *
 ********************************************************************************
 */
 
-#ifndef __TRIANGLE_H
-#define __TRIANGLE_H
+#ifndef __CIRCLE_H
+#define __CIRCLE_H
 
 /*
 ********************************************************************************
@@ -24,7 +24,8 @@
 ********************************************************************************
 */
 
-#define TRIANGLE(object)   ((triangle_t *)(object))
+#define DEF_PI 3.1415926f
+#define CIRCLE(object)   ((circle_t *)(object))
 
 /*
 ********************************************************************************
@@ -40,12 +41,12 @@
 ********************************************************************************
 */
 
-typedef struct _triangle triangle_t;
+typedef struct _circle circle_t;
 
-/* 子类:三角形 */
-struct _triangle {
-    /* 将父类定义在子类的第一个元素,来继承父类 */
-    shape_t super;
+/* 子类:圆 */
+struct _circle {
+    /* 指向父类的指针 */
+    shape_t *super;
     /* 子类私有属性 */
     void *priv;
 };
@@ -87,14 +88,14 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-EXTERN triangle_t* triangle_create(float a, float b, float c);
+EXTERN circle_t* circle_create(float diameter);
 
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
-#endif      /* __TRIANGLE_H */
+#endif      /* __CIRCLE_H */
 
 /*
 ********************************************************************************

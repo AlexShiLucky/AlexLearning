@@ -1,14 +1,11 @@
 /*
 ********************************************************************************
-* triangle.h
+* shape.c
 *
 *   Author: AlexShi <shiweining123@gmail.com>
 *
 ********************************************************************************
 */
-
-#ifndef __TRIANGLE_H
-#define __TRIANGLE_H
 
 /*
 ********************************************************************************
@@ -24,7 +21,7 @@
 ********************************************************************************
 */
 
-#define TRIANGLE(object)   ((triangle_t *)(object))
+
 
 /*
 ********************************************************************************
@@ -36,23 +33,15 @@
 
 /*
 ********************************************************************************
-* Public Types
+* Private Types
 ********************************************************************************
 */
 
-typedef struct _triangle triangle_t;
 
-/* 子类:三角形 */
-struct _triangle {
-    /* 将父类定义在子类的第一个元素,来继承父类 */
-    shape_t super;
-    /* 子类私有属性 */
-    void *priv;
-};
 
 /*
 ********************************************************************************
-* Inline Functions
+* Private Function Prototypes
 ********************************************************************************
 */
 
@@ -68,7 +57,7 @@ struct _triangle {
 
 /*
 ********************************************************************************
-* Public Data
+* Private Data
 ********************************************************************************
 */
 
@@ -76,25 +65,120 @@ struct _triangle {
 
 /*
 ********************************************************************************
-* Public Function Prototypes
+* Private Functions
 ********************************************************************************
 */
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
+/*
+ * @brief
+ *
+ * @param
+ *
+ * @return
+ *
+ * @notes
+ */
 
-EXTERN triangle_t* triangle_create(float a, float b, float c);
 
-#undef EXTERN
-#ifdef __cplusplus
+
+/*
+********************************************************************************
+* Public Functions
+********************************************************************************
+*/
+
+/*
+ * @brief 形状初始化
+ *
+ * @param
+ *
+ * @return 无
+ *
+ * @notes
+ */
+shape_t* shape_create(shape_vtbl_t const *vtbl, int type, const char *name, void *child)
+{
+    shape_t *self = NULL;
+
+    self = (shape_t *)malloc(sizeof(shape_t));
+    if (!self) {
+        printf("It's not enough memory.\n");
+        return NULL;
+    }
+
+    self->type = type;
+    self->name = name;
+    self->vtbl  = vtbl;
+    self->child = child;
+
+    return self;
 }
-#endif
 
-#endif      /* __TRIANGLE_H */
+/*
+ * @brief 计算形状面积
+ *
+ * @param
+ *
+ * @return 面积值
+ *
+ * @notes
+ */
+float shape_area(shape_t const * const self)
+{
+    const shape_vtbl_t *vtbl = self->vtbl;
+
+    return vtbl->area(self->child);
+}
+
+/*
+ * @brief 计算形状的周长
+ *
+ * @param
+ *
+ * @return 周长值
+ *
+ * @notes
+ */
+float shape_perimeter(shape_t const * const self)
+{
+    const shape_vtbl_t *vtbl = self->vtbl;
+
+    return vtbl->perimeter(self->child);
+}
+
+/*
+ * @brief 画出形状
+ *
+ * @param
+ *
+ * @return 无
+ *
+ * @notes
+ */
+void shape_draw(shape_t const * const self)
+{
+    const shape_vtbl_t *vtbl = self->vtbl;
+
+    return vtbl->draw(self->child);
+}
+
+/*
+ * @brief 销毁形状
+ *
+ * @param
+ *
+ * @return 无
+ *
+ * @notes
+ */
+void shape_distory(shape_t * const self)
+{
+    const shape_vtbl_t *vtbl = self->vtbl;
+
+    vtbl->distory(self->child);
+
+    free(self);
+}
 
 /*
 ********************************************************************************

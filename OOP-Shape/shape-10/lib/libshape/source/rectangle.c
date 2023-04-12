@@ -184,15 +184,22 @@ rectangle_t* rectangle_create(float width, float height)
         printf("It's not enough memory.\n");
         goto _err2;
     }
+
+    super = shape_create(&g_rectangle_vtbl, SHAPE_Rectangle, "rectangle", self);
+    if (!super) {
+        printf("It's not enough memory.\n");
+        goto _err3;
+    }
+
     priv->height = height;
     priv->width = width;
     self->priv = priv;
-
-    super = SHAPE(self);
-    shape_init(super, &g_rectangle_vtbl, SHAPE_Rectangle, "rectangle");
+    self->super = super;
     printf("Create %s OK.\n", super->name);
     return self;
 
+_err3:
+    free(priv);
 _err2:
     free(self);
 _err1:
