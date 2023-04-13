@@ -13,8 +13,9 @@
 ********************************************************************************
 */
 
+#include "common.h"
+
 #include "clock.h"
-#include "tick.h"
 #include "crond.h"
 
 /*
@@ -243,7 +244,7 @@ void test_crond(void)
         .tabs = shutofftabs,
         .nums = lengthof(shutofftabs)
     };
-    #if 0
+    #if 1
     /* 2023-04-12 09:00:00 */
     simple_time_t rtc = {
         .sec = 0,           /* Seconds. [0-60] (1 leap second) */
@@ -254,7 +255,7 @@ void test_crond(void)
         .year=23            /* Year - 2000. */
     };
     #endif
-    #if 1
+    #if 0
     /* 2023-04-12 08:09:00 */
     simple_time_t rtc = {
         .sec = 0,           /* Seconds. [0-60] (1 leap second) */

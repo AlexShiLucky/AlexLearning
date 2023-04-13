@@ -31,7 +31,7 @@
 * Configuration Definitions
 ********************************************************************************
 */
-#define CONFIG_LOG_COLOR_EN             0
+#define CONFIG_LOG_COLOR_EN             1
 #define CONFIG_LOG_EN                   1
 #define CONFIG_LOG_WARN_EN              1
 #define CONFIG_LOG_ASSERT_EN            1

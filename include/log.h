@@ -54,7 +54,7 @@
 #define LOG_COLOR_ERROR
 #define LOG_COLOR_INFO
 #define LOG_COLOR_TRACE
-#define LOG_CLOLR_DELIMITER
+#define LOG_COLOR_DELIMITER
 #define LOG_COLOR_REPORT
 #define ERR_COLOR_TRACE
 #endif
@@ -142,9 +142,9 @@ do {                                                                            
 #define DEF_DELIMITER_STR          "================================================================"
 #define DEF_CLEAR_SCREEN            VTANSI_ERASE_SCR""VTANSI_CURSOR_HOME
 
-#define DELIMITER_PREFIX            LOG_CLOLR_DELIMITER
+#define DELIMITER_PREFIX            LOG_COLOR_DELIMITER
 #define DELIMITER_SUFFIX            LOG_COLOR_NONE""CONFIG_LINE_ENDING
-#define DELIMITER_LINE()            LOG_Print(DELIMITER_PREFIX""DEF_DELIMITER_STR""DELIMITER_SUFFIX);
+#define DELIMITER_LINE()            LOG_Print(DELIMITER_PREFIX""DEF_DELIMITER_STR""DELIMITER_SUFFIX)
 
 /*
 ********************************************************************************

@@ -31,13 +31,16 @@ LIB_DIRS       :=
 
 LIBS           :=
 
+all:
+	@echo [$(TARGET) build complete]
+
 #宏定义
 MACRO_DEFS     :=
-
+run:MACRO_DEFS += CONFIG_LOG_COLOR_EN=1
 #编译选项
 CFLAGS          += -W -Wall -g -std=c99
 ifneq ($(MACRO_DEFS),)
-CFLAGS          += $(addprefix -I, $(MACRO_DEFS))
+CFLAGS          += $(addprefix -D, $(MACRO_DEFS))
 endif
 ifneq ($(INC_DIRS),)
 CFLAGS          += $(addprefix -I, $(INC_DIRS))
@@ -45,7 +48,7 @@ endif
 
 #链接选项
 LFLAGS          += -Wl,--start-group -lc -lm -Wl,--end-group
-LFLAGS          += -static -Wl,-Map=Project.map -Wl,--gc-sections 
+LFLAGS          += -static -Wl,-Map=$(OUT_DIR)/Project.map -Wl,--gc-sections 
 
 #链接启动文件和链接脚本
 #LFLAGS         += $(TOP)/CORE/startup_stm32f10x_hd.s
@@ -65,9 +68,11 @@ C_OBJ           = $(patsubst %.$(EXT), $(OUT_DIR)/%.o,$(C_SRC_NODIR))
 #依赖文件
 C_DEP           = $(patsubst %.$(EXT), $(OUT_DIR)/%.d,$(C_SRC_NODIR))
 
-.PHONY: all clean rebuild run ctags
+.PHONY: all clean rebuild run test ctags
 
-all:$(C_OBJ)
+all:$(TARGET)
+
+$(TARGET):$(C_OBJ)
 	@echo "linking object to $(TARGET)"
 	@$(CC) $(C_OBJ) -o $(TARGET) $(LFLAGS)
 	@$(SIZE) $(TARGET)
@@ -77,25 +82,27 @@ all:$(C_OBJ)
 #   $(CC) -c $(CFLAGS) -o $@ $<
 
 $(OUT_DIR)/%.o:%.$(EXT)
-	@mkdir -p OBJ
+	@mkdir -p $(OUT_DIR)
 	@echo "building $<"
 	@$(CC) -c $(CFLAGS) -o $@ $<
 
 -include $(C_DEP)
 $(OUT_DIR)/%.d:%.$(EXT)
-	@mkdir -p OBJ
+	@mkdir -p $(OUT_DIR)
 	@echo "making $@"
 	@set -e;rm -f $@;$(CC) -MM $(CFLAGS) $< > $@.$$$$;sed 's,\($*\)\.o[ :]*,$(OUT_DIR)/\1.o $(OUT_DIR)/\1.d:,g' < $@.$$$$ > $@;rm -f $@.$$$$
 
 clean:
-	-rm -f $(TARGET)
-	-rm -f $(OUT_DIR)/*
-	-rm -f $(shell find ./ -name '*.map')
-	-rm -f $(shell find ./ -name '*.elf')
-	-rm -f $(shell find ./ -name '*.bin')
-	-rm -f $(shell find ./ -name '*.hex')
+	-rm -f $(TARGET) log.txt
+	-rm -rf $(OUT_DIR)
 
 rebuild: clean all
+
+run: all
+	./$(TARGET)
+
+test:all
+	./$(TARGET) > log.txt
 
 ctags:
 	@ctags -R *
