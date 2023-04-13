@@ -22,7 +22,7 @@ VPATH          += $(TOP)/source
 SOURCE_DIR     := $(TOP)/source
 
 #设置中间目标文件目录
-OBJ_DIR        := $(TOP)/OBJ
+OUT_DIR        := $(TOP)/build
 
 #设定头文件包含目录
 INC_DIRS       := $(TOP)/include
@@ -60,10 +60,10 @@ C_SRC           += main.c
 #中间目标文件
 #C_OBJ          += $(C_SRC:%.$(EXT)=%.o)
 C_SRC_NODIR     = $(notdir $(C_SRC))
-C_OBJ           = $(patsubst %.$(EXT), $(OBJ_DIR)/%.o,$(C_SRC_NODIR))
+C_OBJ           = $(patsubst %.$(EXT), $(OUT_DIR)/%.o,$(C_SRC_NODIR))
 
 #依赖文件
-C_DEP           = $(patsubst %.$(EXT), $(OBJ_DIR)/%.d,$(C_SRC_NODIR))
+C_DEP           = $(patsubst %.$(EXT), $(OUT_DIR)/%.d,$(C_SRC_NODIR))
 
 .PHONY: all clean rebuild run ctags
 
@@ -76,20 +76,20 @@ all:$(C_OBJ)
 #$(C_OBJ):%.o:%.$(EXT)
 #   $(CC) -c $(CFLAGS) -o $@ $<
 
-$(OBJ_DIR)/%.o:%.$(EXT)
+$(OUT_DIR)/%.o:%.$(EXT)
 	@mkdir -p OBJ
 	@echo "building $<"
 	@$(CC) -c $(CFLAGS) -o $@ $<
 
 -include $(C_DEP)
-$(OBJ_DIR)/%.d:%.$(EXT)
+$(OUT_DIR)/%.d:%.$(EXT)
 	@mkdir -p OBJ
 	@echo "making $@"
-	@set -e;rm -f $@;$(CC) -MM $(CFLAGS) $< > $@.$$$$;sed 's,\($*\)\.o[ :]*,$(OBJ_DIR)/\1.o $(OBJ_DIR)/\1.d:,g' < $@.$$$$ > $@;rm -f $@.$$$$
+	@set -e;rm -f $@;$(CC) -MM $(CFLAGS) $< > $@.$$$$;sed 's,\($*\)\.o[ :]*,$(OUT_DIR)/\1.o $(OUT_DIR)/\1.d:,g' < $@.$$$$ > $@;rm -f $@.$$$$
 
 clean:
 	-rm -f $(TARGET)
-	-rm -f $(OBJ_DIR)/*
+	-rm -f $(OUT_DIR)/*
 	-rm -f $(shell find ./ -name '*.map')
 	-rm -f $(shell find ./ -name '*.elf')
 	-rm -f $(shell find ./ -name '*.bin')

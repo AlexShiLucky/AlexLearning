@@ -48,6 +48,14 @@ enum _crontab_state {
     CRONTAB_STATE_Inactive = 3
 };
 
+typedef struct _crontab_range {
+    char *name;
+    char *from;
+    char *to;
+    char **tabs;
+    cpu_size_t nums;
+} crontab_range_t;
+
 typedef struct _daterange {
     CPU_INT16U year;
     CPU_INT08U month;
@@ -107,9 +115,8 @@ extern "C" {
 #define EXTERN extern
 #endif
 
+EXTERN cpu_bool_t crontab_parse(crontab_t *pct, crontab_range_t *prange);
 EXTERN cpu_bool_t crontab_cancel(crontab_t *pct);
-EXTERN cpu_bool_t crontab_powerup_parse(crontab_t *pct);
-EXTERN cpu_bool_t crontab_shutoff_parse(crontab_t *pct);
 EXTERN struct _tm * crontab_search(crontab_t *pct, struct _tm *pnow);
 
 #undef EXTERN

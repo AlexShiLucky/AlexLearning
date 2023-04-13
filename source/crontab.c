@@ -38,14 +38,6 @@
 ********************************************************************************
 */
 
-typedef struct _crontab_range {
-    char *name;
-    char *from;
-    char *to;
-    char **tabs;
-    cpu_size_t nums;
-} crontab_range_t;
-
 struct _alarm_tm {
     CPU_INT08U min;           /* Minutes. [0-59] */
     CPU_INT08U hour;          /* Hours.   [0-23] */
@@ -75,25 +67,6 @@ struct _alarm_tm {
 ********************************************************************************
 */
 
-static char *poweruptabs[] = {"10 7 * * 3"};
-static char *shutofftabs[] = {"10 8 * * 3"};
-
-static crontab_range_t g_powerup_range = {
-    .name = "Powerup",
-    .from = "2023 4 11",
-    .to   = "2023 5 24",
-    .tabs = poweruptabs,
-    .nums = lengthof(poweruptabs)
-};
-
-static crontab_range_t g_shutoff_range = {
-    .name = "Shutoff",
-    .from = "2023 4 11",
-    .to   = "2023 5 24",
-    .tabs = shutofftabs,
-    .nums = lengthof(shutofftabs)
-};
-
 static struct _tm g_alarm_tm;
 
 /*
@@ -102,7 +75,7 @@ static struct _tm g_alarm_tm;
 ********************************************************************************
 */
 
-//#ifndef __GNUC__
+#ifndef __GNUC__
 /*****************************************************************************/
 /* STRCASECMP() - Case-insensitive strcmp.                                   */
 /*****************************************************************************/
@@ -127,7 +100,7 @@ static int strncasecmp(const char* s1, const char* s2, size_t n)
 
     return tolower(c1) - tolower(c2);
 }
-//#endif
+#endif
 
 static CPU_INT64S cron_parsepart(char *str, char **end, CPU_INT08U min, CPU_INT08U max, const char *names)
 {
@@ -336,68 +309,6 @@ static void cronent_desc_list_free(cronent_desc_t *phead)
     }
 }
 
-static cpu_bool_t crontab_parse(crontab_t *pct, crontab_range_t *prange)
-{
-    cronent_desc_t *phead = NULL;
-    cronent_desc_t *pdesc;
-    char *pstr;
-    cpu_size_t idx;
-    CPU_INT08U state = CRONTAB_STATE_Invalid;
-    cpu_bool_t isok = DEF_No;
-
-    do {
-        if (!crontab_daterange_parse(&pct->from, prange->from)) {
-            LOG_Warn("Parse [%s] crontab date[%s] from error!", \
-                    prange->name, prange->from);
-            state = CRONTAB_STATE_Err;
-            break;
-        }
-
-        if (!crontab_daterange_parse(&pct->to, prange->to)) {
-            LOG_Warn("Parse [%s] crontab date[%s] to error!", \
-                    prange->name, prange->to);
-            state = CRONTAB_STATE_Err;
-            break;
-        }
-
-        LOG_Info("[%s] Date range: [%u/%02u/%02u - %u/%02u/%02u]", \
-            prange->name, \
-            pct->from.year, pct->from.month, pct->from.day, \
-            pct->to.year, pct->to.month, pct->to.day);
-
-        for (idx = 0; idx < prange->nums; idx++) {
-            pdesc = (cronent_desc_t *)calloc(1, sizeof(cronent_desc_t));
-            pstr = prange->tabs[idx];
-            if (!pdesc || cron_parsedesc(pstr, pdesc)) {
-                state = CRONTAB_STATE_Err;
-                free(pdesc);
-                break;
-            }
-            pdesc->next = phead;
-            phead = pdesc;
-        }
-        /* 创建新链表失败,需将其释放 */
-        if (state == CRONTAB_STATE_Err) {
-            LOG_Warn("Parse error & Free crontab list.");
-            cronent_desc_list_free(phead);
-            break;
-        }
-
-        /* 释放原先的列表 */
-        LOG_Info("Free old crontab list[%p].", pct->phead);
-        cronent_desc_list_free(pct->phead);
-        /* 挂接新的列表 */
-        pct->phead = phead;
-
-        state = CRONTAB_STATE_OK;
-        isok = DEF_Yes;
-    } while (0);
-
-    pct->state = state;
-
-    return isok;
-}
-
 static CPU_INT08U mask_search(CPU_INT08U start, CPU_INT08U end, CPU_INT08U mod, CPU_INT64U mask)
 {
     CPU_INT08U idx, pos;
@@ -503,19 +414,18 @@ static struct _tm * crontab_pattern_match(crontab_t *pct, CPU_INT64U cstart)
     }
 
     if (isinit && isok) {
-        if (mint.wday == tm_start.wday) {
-            g_alarm_tm.year = tm_start.year;
-            g_alarm_tm.mon  = tm_start.mon;
-            g_alarm_tm.mday = tm_start.mday;
+        if (mint.nsecs >= nsecs_start) {
+            time_to_tm(cstart, mint.nsecs - nsecs_start, &g_alarm_tm);
         } else {
-            CPU_INT08U delta;
-            delta = (mint.wday - tm_start.wday + 7) % 7;
-            time_to_tm(cstart, delta*DEF_TIME_NBR_SEC_PER_DAY, &g_alarm_tm);
+            LOG_Trace("mint.nsecs[%ul] < nsecs_start[%ul]", mint.nsecs, nsecs_start);
+            time_to_tm(cstart, mint.nsecs - nsecs_start + DEF_TIME_NBR_SEC_PER_WK, &g_alarm_tm);
         }
+        #if 0
         g_alarm_tm.wday = mint.wday;
         g_alarm_tm.hour = mint.hour;
         g_alarm_tm.min  = mint.min;
         g_alarm_tm.sec = 0;
+        #endif
 
         pmin = &g_alarm_tm;
     }
@@ -539,6 +449,68 @@ static struct _tm * crontab_pattern_match(crontab_t *pct, CPU_INT64U cstart)
  *
  * @notes
  */
+cpu_bool_t crontab_parse(crontab_t *pct, crontab_range_t *prange)
+{
+    cronent_desc_t *phead = NULL;
+    cronent_desc_t *pdesc;
+    char *pstr;
+    cpu_size_t idx;
+    CPU_INT08U state = CRONTAB_STATE_Invalid;
+    cpu_bool_t isok = DEF_No;
+
+    do {
+        if (!crontab_daterange_parse(&pct->from, prange->from)) {
+            LOG_Warn("Parse [%s] crontab date[%s] from error!", \
+                    prange->name, prange->from);
+            state = CRONTAB_STATE_Err;
+            break;
+        }
+
+        if (!crontab_daterange_parse(&pct->to, prange->to)) {
+            LOG_Warn("Parse [%s] crontab date[%s] to error!", \
+                    prange->name, prange->to);
+            state = CRONTAB_STATE_Err;
+            break;
+        }
+
+        LOG_Info("[%s] Date range: [%u/%02u/%02u - %u/%02u/%02u]", \
+            prange->name, \
+            pct->from.year, pct->from.month, pct->from.day, \
+            pct->to.year, pct->to.month, pct->to.day);
+
+        for (idx = 0; idx < prange->nums; idx++) {
+            pdesc = (cronent_desc_t *)calloc(1, sizeof(cronent_desc_t));
+            pstr = prange->tabs[idx];
+            if (!pdesc || cron_parsedesc(pstr, pdesc)) {
+                state = CRONTAB_STATE_Err;
+                free(pdesc);
+                break;
+            }
+            pdesc->next = phead;
+            phead = pdesc;
+        }
+        /* 创建新链表失败,需将其释放 */
+        if (state == CRONTAB_STATE_Err) {
+            LOG_Warn("Parse error & Free crontab list.");
+            cronent_desc_list_free(phead);
+            break;
+        }
+
+        /* 释放原先的列表 */
+        LOG_Info("Free old crontab list[%p].", pct->phead);
+        cronent_desc_list_free(pct->phead);
+        /* 挂接新的列表 */
+        pct->phead = phead;
+
+        state = CRONTAB_STATE_OK;
+        isok = DEF_Yes;
+    } while (0);
+
+    pct->state = state;
+
+    return isok;
+}
+
 cpu_bool_t crontab_cancel(crontab_t *pct)
 {
     memset(&pct->from, 0, sizeof(daterange_t));
@@ -548,16 +520,6 @@ cpu_bool_t crontab_cancel(crontab_t *pct)
     pct->phead = NULL;
 
     return DEF_Yes;
-}
-
-cpu_bool_t crontab_powerup_parse(crontab_t *pct)
-{
-    return crontab_parse(pct, &g_powerup_range);
-}
-
-cpu_bool_t crontab_shutoff_parse(crontab_t *pct)
-{
-    return crontab_parse(pct, &g_shutoff_range);
 }
 
 struct _tm * crontab_search(crontab_t *pct, struct _tm *pnow)
