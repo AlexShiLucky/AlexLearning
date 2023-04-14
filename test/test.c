@@ -117,11 +117,22 @@ void test_crond(void)
     };
     #endif
     #if 0
-    /* 2023-04-12 08:09:00 */
+    /* 2023-04-12 08:00:00 */
     simple_time_t rtc = {
         .sec = 0,           /* Seconds. [0-60] (1 leap second) */
-        .min = 9,           /* Minutes. [0-59] */
+        .min = 0,           /* Minutes. [0-59] */
         .hour= 8,           /* Hours.   [0-23] */
+        .mday= 11,          /* Day.     [0-30] */
+        .mon = 3,           /* Month.   [0-11] */
+        .year=23            /* Year - 2000. */
+    };
+    #endif
+    #if 0
+    /* 2023-04-12 07:00:00 */
+    simple_time_t rtc = {
+        .sec = 0,           /* Seconds. [0-60] (1 leap second) */
+        .min = 0,           /* Minutes. [0-59] */
+        .hour= 7,           /* Hours.   [0-23] */
         .mday= 11,          /* Day.     [0-30] */
         .mon = 3,           /* Month.   [0-11] */
         .year=23            /* Year - 2000. */

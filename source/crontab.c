@@ -415,19 +415,12 @@ static struct _tm * crontab_pattern_match(crontab_t *pct, CPU_INT64U cstart)
 
     if (isinit && isok) {
         if (mint.nsecs >= nsecs_start) {
+            /* mint表示将来最近的关机时间,所有该值必须大于等于当前值 */
             time_to_tm(cstart, mint.nsecs - nsecs_start, &g_alarm_tm);
+            pmin = &g_alarm_tm;
         } else {
             LOG_Trace("mint.nsecs[%ul] < nsecs_start[%ul]", mint.nsecs, nsecs_start);
-            time_to_tm(cstart, mint.nsecs - nsecs_start + DEF_TIME_NBR_SEC_PER_WK, &g_alarm_tm);
         }
-        #if 0
-        g_alarm_tm.wday = mint.wday;
-        g_alarm_tm.hour = mint.hour;
-        g_alarm_tm.min  = mint.min;
-        g_alarm_tm.sec = 0;
-        #endif
-
-        pmin = &g_alarm_tm;
     }
 
     return pmin;

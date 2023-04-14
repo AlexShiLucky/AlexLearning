@@ -187,6 +187,7 @@ void crond_autoshutoff_check(crond_t *pcrond)
             nsecs = nt->sync_nsecs + (OSTimeGet()-nt->sync_ticks)/OS_TICKS_PER_SEC;
             if (nsecs >= priv->shutoff_active_nsecs) {
                 if (1) {     // 如果USB断开连接,则通知时序自动关机
+                    LOG_Print(CONFIG_LINE_ENDING);
                     if (sys_settime(nt, OSTimeGet()) == DEF_Success) {
                         sys_gettime(nt, &rtc);
                         LOG_Print(VTANSI_COLOR_LIGHT_YELLOW"[SHUTDOWN-Alarm!!!] Now:%u-%02u-%02u %s %02u:%02u:%02u"VTANSI_DISPLAY_RESET""CONFIG_LINE_ENDING, \
@@ -213,6 +214,7 @@ void crond_autoshutoff_check(crond_t *pcrond)
                 s = priv->shutoff_active_nsecs-nsecs;
                 if (s >= 60) pcrond->awake_ticks = OS_TICKS_PER_MIN;
                 else pcrond->awake_ticks = (CPU_INT16U)(s*OS_TICKS_PER_SEC);
+                #if 0
                 {
                     CPU_INT32U h, m;
                     h = s/DEF_TIME_NBR_SEC_PER_HR;
@@ -222,6 +224,9 @@ void crond_autoshutoff_check(crond_t *pcrond)
                     LOG_Info("Shutoff Current:%llus, Active:%llus, delta:[%u:%02u:%02u]", \
                             nsecs, priv->shutoff_active_nsecs, h, m, s);
                 }
+                #else
+                //LOG_Print("#");
+                #endif
             }
         }
     }
