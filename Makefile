@@ -17,9 +17,11 @@ EXT            := c
 
 #设置源文件搜索路径
 VPATH          += $(TOP)/source
+VPATH          += $(TOP)/test
 
 #设置自定义源文件目录
 SOURCE_DIR     := $(TOP)/source
+SOURCE_DIR     := $(TOP)/test
 
 #设置中间目标文件目录
 OUT_DIR        := $(TOP)/build
@@ -56,6 +58,7 @@ LFLAGS          += -static -Wl,-Map=$(OUT_DIR)/Project.map -Wl,--gc-sections
 
 #固定源文件添加
 C_SRC           += $(shell find $(TOP)/source  -name '*.$(EXT)')
+C_SRC           += $(shell find $(TOP)/test  -name '*.$(EXT)')
 
 #自定义源文件添加
 C_SRC           += main.c

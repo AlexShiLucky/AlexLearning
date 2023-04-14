@@ -1,6 +1,6 @@
 /*
 ********************************************************************************
-* main.c
+* test1.c
 *
 *   Author: AlexShi <shiweining123@gmail.com>
 *
@@ -15,6 +15,7 @@
 
 #include "common.h"
 
+#include "clock.h"
 #include "crond.h"
 
 /*
@@ -49,6 +50,7 @@
 
 
 
+
 /*
 ********************************************************************************
 * Shared Data
@@ -80,7 +82,76 @@
  *
  * @notes
  */
+void test_crond(void)
+{
+    crond_t *pcrond = crond_get();
+    CPU_INT32U ticks;
 
+    char *poweruptabs[] = {"10 7 * * 3"};
+    char *shutofftabs[] = {"10 8 * * 3"};
+
+    crontab_range_t g_powerup_range = {
+        .name = "Powerup",
+        .from = "2023 4 11",
+        .to   = "2023 5 24",
+        .tabs = poweruptabs,
+        .nums = lengthof(poweruptabs)
+    };
+
+    crontab_range_t g_shutoff_range = {
+        .name = "Shutoff",
+        .from = "2023 4 11",
+        .to   = "2023 5 24",
+        .tabs = shutofftabs,
+        .nums = lengthof(shutofftabs)
+    };
+    #if 1
+    /* 2023-04-12 09:00:00 */
+    simple_time_t rtc = {
+        .sec = 0,           /* Seconds. [0-60] (1 leap second) */
+        .min = 0,           /* Minutes. [0-59] */
+        .hour= 9,           /* Hours.   [0-23] */
+        .mday= 11,          /* Day.     [0-30] */
+        .mon = 3,           /* Month.   [0-11] */
+        .year=23            /* Year - 2000. */
+    };
+    #endif
+    #if 0
+    /* 2023-04-12 08:09:00 */
+    simple_time_t rtc = {
+        .sec = 0,           /* Seconds. [0-60] (1 leap second) */
+        .min = 9,           /* Minutes. [0-59] */
+        .hour= 8,           /* Hours.   [0-23] */
+        .mday= 11,          /* Day.     [0-30] */
+        .mon = 3,           /* Month.   [0-11] */
+        .year=23            /* Year - 2000. */
+    };
+    #endif
+
+    OSTimeSet(0);
+    ticks = OSTimeGet();
+    sys_inittime(sys_time_get(), &rtc);
+    /* 解析开机规则 */
+    crontab_parse(&pcrond->powerup, &g_powerup_range);
+    /* 解析关机规则 */
+    crontab_parse(&pcrond->shutoff, &g_shutoff_range);
+    /* 计算最近一次关机时刻 */
+    crond_autoshutoff_calc(pcrond);
+
+    while (++ticks) {
+        OSTimeSet(ticks);
+
+        /* 检查关机时刻是否到来 */
+        crond_autoshutoff_check(pcrond);
+
+        if (pcrond->flags&DEF_FLAGS_CROND_AUTOSHUTOFF_ACTIVED) {
+            break;
+        }
+    }
+
+    /* 计算下一次开机时刻 */
+    crond_autopowerup_calc(pcrond);
+}
 
 
 /*
@@ -98,13 +169,14 @@
  *
  * @notes
  */
-extern void test_crond(void);
+#if 0
 int main(void)
 {
     test_crond();
 
     return 0;
 }
+#endif
 
 /*
 ********************************************************************************

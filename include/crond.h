@@ -103,8 +103,11 @@ extern "C" {
 #define EXTERN extern
 #endif
 
+EXTERN crond_t* crond_get(void);
 EXTERN void crond_autopowerup_calc(crond_t *pcrond);
-EXTERN void test_crond(void);
+EXTERN void crond_autoshutoff_calc(crond_t *pcrond);
+EXTERN void crond_autoshutoff_check(crond_t *pcrond);
+
 
 #undef EXTERN
 #ifdef __cplusplus
