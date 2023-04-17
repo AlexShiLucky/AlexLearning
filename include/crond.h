@@ -104,8 +104,8 @@ extern "C" {
 #endif
 
 EXTERN crond_t* crond_get(void);
-EXTERN void crond_autopowerup_calc(crond_t *pcrond);
-EXTERN void crond_autoshutoff_calc(crond_t *pcrond);
+EXTERN cpu_bool_t crond_autopowerup_calc(crond_t *pcrond);
+EXTERN cpu_bool_t crond_autoshutoff_calc(crond_t *pcrond);
 EXTERN void crond_autoshutoff_check(crond_t *pcrond);
 
 

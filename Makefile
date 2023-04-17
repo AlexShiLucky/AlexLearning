@@ -800,7 +800,7 @@ help :
 	@$(ECHO) "    clean_libs        - All libraries"
 	@$(ECHO)
 	@$(ECHO) "  Run targets:"
-	@$(ECHO) "    download-elf      - Run your elf executable"
+	@$(ECHO) "    run               - Run your elf executable"
 
 # 跳过制作库而只制作应用程序的便捷规则。
 .PHONY: app
@@ -1018,6 +1018,10 @@ $(OBJDUMP_NAME) : $(ELF)
 $(ASM_NAME) : $(ELF)
 	@$(ECHO) Info: Creating $@
 	$(OBJDUMP) $(ASM_FLAGS) $< >$@
+
+.PHONY: run
+run: $(ELF)
+	@./$<
 
 # Function used to check variables. Use on the command line:
 # make print-VARNAME

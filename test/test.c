@@ -86,15 +86,16 @@ void test_crond(void)
 {
     crond_t *pcrond = crond_get();
     CPU_INT32U ticks;
-    CPU_INT08U shutcnt = 0;
+    cpu_bool_t hasonalarm = DEF_No;
+    cpu_bool_t hasoffalarm = DEF_No;
 
     char *poweruptabs[] = {
-        "10 7 * * 3",                       // 每周三的 7:10 执行
+      //"10 7 * * 3",                        // 每周三的 7:10 执行
       // "* * * * *",
       // "43 21 * * *",                      // 21:43 执行
       // "15\t05 * * *",                     // 05:15 执行
       // "0 17 * * 1",                       // 每周一的 17:00 执行
-         "0 17 * * 0",                       // 每周日的 17:00 执行
+         "0 7 * * 0",                        // 每周日的 7:00 执行
       // "0 17 * * 7",                       // 每周日的 17:00 执行
       // "0 8 * * 1-5",                      // 每周一到周五8:00 执行
       // "0 17 * * 1-5",                     // 每周一到周五17:00 执行
@@ -122,7 +123,7 @@ void test_crond(void)
       // "0 8 1 2-9 *",                      // 2/3/4/5/6/7/8/9月1号 8:00执行
       // "0 8 1,15 1-10/3 *",                // 1/4/7/10月的1/15号 8:0执行
       // "0 8 * * 1-5",                      // 每周一到周五 8:00执行
-      // "0 8 * * Mon-Fri",                  // 每周一到周五 8:00执行
+         "0 8 * * Mon-Fri",                  // 每周一到周五 8:00执行
       // "0 20 * * 1-5",                     // 每周一到周五 20:00执行
       // "0 20 * * Mon-Fri",                 // 每周一到周五 20:00执行
       // "0 8 * * 1,3",                      // 周一、周三 8:00执行
@@ -144,12 +145,12 @@ void test_crond(void)
       // "0 8 * Aug-Jan 1-Wed,Fri",          // 8/9/10/11/12/1月周一、周二、周三、周五 8:00执行
     };
     char *shutofftabs[] = {
-        "10 8 * * 3",                       // 每周三的 8:10 执行
+     // "10 8 * * 3",                       // 每周三的 8:10 执行
      // "* * * * *",
      // "43 21 * * *",                      // 21:43 执行
      // "15\t05 * * *",                     // 05:15 执行
      // "0 17 * * 1",                       // 每周一的 17:00 执行
-     // "0 17 * * 0",                       // 每周日的 17:00 执行
+        "0 8 * * 0",                        // 每周日的 8:00 执行
      // "0 17 * * 7",                       // 每周日的 17:00 执行
      // "0 8 * * 1-5",                      // 每周一到周五8:00 执行
      // "0 17 * * 1-5",                     // 每周一到周五17:00 执行
@@ -178,7 +179,7 @@ void test_crond(void)
      // "0 8 1,15 1-10/3 *",                // 1/4/7/10月的1/15号 8:0执行
      // "0 8 * * 1-5",                      // 每周一到周五 8:00执行
      // "0 8 * * Mon-Fri",                  // 每周一到周五 8:00执行
-        "0 20 * * 1-5",                     // 每周一到周五 20:00执行
+        "0 18 * * 1-5",                     // 每周一到周五 18:00执行
      // "0 20 * * Mon-Fri",                 // 每周一到周五 20:00执行
      // "0 8 * * 1,3",                      // 周一、周三 8:00执行
      // "0 8 * * Mon,Wed",                  // 周一、周三 8:00执行
@@ -220,7 +221,7 @@ void test_crond(void)
         .sec = 0,           /* Seconds. [0-60] (1 leap second) */
         .min = 0,           /* Minutes. [0-59] */
         .hour= 9,           /* Hours.   [0-23] */
-        .mday= 11,          /* Day.     [0-30] */
+        .mday= 7,           /* Day.     [0-30] */
         .mon = 3,           /* Month.   [0-11] */
         .year=23            /* Year - 2000. */
     };
@@ -255,6 +256,8 @@ void test_crond(void)
     crontab_parse(&pcrond->powerup, &g_powerup_range);
     /* 解析关机规则 */
     crontab_parse(&pcrond->shutoff, &g_shutoff_range);
+    /* 计算最近一次开机时刻 */
+    crond_autopowerup_calc(pcrond);
     /* 计算最近一次关机时刻 */
     crond_autoshutoff_calc(pcrond);
 
@@ -265,10 +268,12 @@ void test_crond(void)
         crond_autoshutoff_check(pcrond);
 
         if (pcrond->flags&DEF_FLAGS_CROND_AUTOSHUTOFF_ACTIVED) {
-            shutcnt++;
+            pcrond->flags &= ~DEF_FLAGS_CROND_AUTOSHUTOFF_ACTIVED;
             /* 计算下一次开机时刻 */
-            crond_autopowerup_calc(pcrond);
-            if (shutcnt >= g_shutoff_range.nums) break;
+            hasonalarm = crond_autopowerup_calc(pcrond);
+            /* 计算下一次关机时刻 */
+            hasoffalarm = crond_autoshutoff_calc(pcrond);
+            if (!hasonalarm && !hasoffalarm) break;
         }
     }
 }

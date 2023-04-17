@@ -268,7 +268,7 @@ static cpu_bool_t crontab_daterange_parse(daterange_t *pdr, const char *str)
     cpu_bool_t isok = DEF_No;
 
     sbuf = (char *)malloc(strlen(str) + 1);     // 注意:不能使用系统函数strdup,该函数会从系统堆中申请内存,导致内存泄漏
-    LOG_Info("sbuf=%p", sbuf);
+    //LOG_Info("sbuf=%p", sbuf);
     if (sbuf) {
         strcpy(sbuf, str);
         do {
