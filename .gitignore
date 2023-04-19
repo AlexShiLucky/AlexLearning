@@ -19,6 +19,8 @@ build.txt
 .tags
 .tags_sorted_by_file
 .force_rebuild
+.xmake
+build
 *.o
 *.d
 *.a

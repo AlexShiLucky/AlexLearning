@@ -13,7 +13,7 @@
 ********************************************************************************
 */
 
-#include "novosys_common.h"
+#include "common.h"
 
 #include "template.h"
 
