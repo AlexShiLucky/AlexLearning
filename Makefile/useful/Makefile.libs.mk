@@ -1,3 +1,6 @@
+APP := demo
+################################################################################
+# Tools
 CC = gcc
 LD = g++
 AR = ar
@@ -6,6 +9,7 @@ ECHO = echo
 MKDIR = mkdir -p
 RM = rm -rf
 
+################################################################################
 DIR_BIN = bin
 DIR_BUILD = build
 
@@ -31,11 +35,9 @@ LIBS_NAME_SYS := m
 SRCS := $(SRCS_C)
 OBJS := $(SRCS:%.c=$(DIR_BUILD)/%.o)
 DEPS := $(OBJS:.o=.d)
-LIBS := $(LIBS_NAME_USR) $(LIBS_NAME_SYS)
-APPS := demo
+LIBS_NAME := $(LIBS_NAME_USR) $(LIBS_NAME_SYS)
 
 CFLAGS_STD := -std=c99
-CFLAGS_DEPS := -MP -MMD
 CFLAGS_OPTS := -O0
 CFLAGS_DEBUG := -g
 CFLAGS_WARNINGS := -Wall
@@ -45,10 +47,9 @@ CFLAGS_DIRS_INC := $(DIRS_INC:%=-I%)
 #CFLAGS_DIRS_INC := $(addprefix -I,$(DIRS_INC))
 LDFLAGS_DIRS_LIB := $(DIRS_LIB:%=-L %)
 #LDFLAGS_DIRS_LIB := $(addprefix -L,$(DIRS_LIB))
-LDFLAGS_LIBS := $(LIBS:%=-l%)
-#LDFLAGS_LIBS := $(addprefix -l,$(LIBS))
+LIBS := $(LIBS_NAME:%=-l%)
+#LIBS := $(addprefix -l,$(LIBS))
 CFLAGS := $(CFLAGS_STD)
-CFLAGS += $(CFLAGS_DEPS)
 CFLAGS += $(CFLAGS_OPTS)
 CFLAGS += $(CFLAGS_DEBUG)
 CFLAGS += $(CFLAGS_WARNINGS)
@@ -56,7 +57,6 @@ CFLAGS += $(CFLAGS_DSYMS)
 CFLAGS += $(CFLAGS_USYMS)
 CFLAGS += $(CFLAGS_DIRS_INC)
 
-LDFLAGS += $(LDFLAGS_LIBS)
 LDFLAGS += $(LDFLAGS_DIRS_LIB)
 #CFLAGS += -Wl,--start-group $(CFLAGS_LIBS) -Wl,--end-group
 
@@ -72,12 +72,12 @@ Q :=
 endif
 
 .PHONY: all
-all: $(APPS)
-	@$(ECHO) [$(APPS)] build complete
+all: $(APP)
+	@$(ECHO) [$(APP)] build complete
 
-$(APPS): $(OBJS) $(LIBS_USR)
+$(APP): $(OBJS) $(LIBS_USR)
 	@$(ECHO) "LN: $^ -> $@"
-	$(Q) $(LD) $(CFLAGS) $(OBJS) -o $@ $(LDFLAGS)
+	$(Q) $(LD) $(LDFLAGS) $(CFLAGS) -o $@ $(OBJS) $(LIBS)
 
 $(DIR_BUILD)/%.o: %.c
 	$(Q) $(MKDIR) $(@D)
@@ -85,6 +85,7 @@ $(DIR_BUILD)/%.o: %.c
 	$(Q) $(CC) $(CFLAGS) -c $< -o $@
 
 $(DIR_BUILD)/lib/%.a: $(OBJS_LIB)
+	@$(MKDIR) $(@D)
 	@$(ECHO) "AR: $^ -> $@"
 	$(Q) $(AR) $(ARFLAGS) $@ $^
 
