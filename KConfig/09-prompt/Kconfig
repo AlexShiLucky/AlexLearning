@@ -1,0 +1,38 @@
+mainmenu "This is MainMenu Configuration"
+
+# 带有prompt属性的配置会在界面上出现
+config USER_CONFIG1
+    bool "This User Config 1"
+    ---help---
+        User Config 1
+
+config USER_CONFIG2
+    bool "This User Config 2"
+    default y
+    select USER_CONFIG4
+    ---help---
+        User Config 2
+
+config USER_CONFIG3
+    bool
+    prompt "This User Config 3"
+    select USER_CONFIG5
+    select USER_CONFIG6
+    ---help---
+        User Config 3
+
+# 不带prompt属性的配置不出现在界面上,只能依赖于别的配置来间接选择
+config USER_CONFIG4
+    bool
+    ---help---
+        User Config 4
+
+config USER_CONFIG5
+    bool
+    ---help---
+        User Config 5
+
+config USER_CONFIG6
+    bool
+    ---help---
+        User Config 6

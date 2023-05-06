@@ -1,0 +1,104 @@
+mainmenu "This is MainMenu Configuration"
+
+# 用户配置D1
+menuconfig USER_CONFIG_D1
+    bool "This User Config D1"
+    default y
+    ---help---
+        User Config D1
+
+config USER_SUB_CONFIG_D1_1
+    bool "This User Sub Config D1_1"
+    default y
+    ---help---
+        User Sub Config D1_1
+
+if USER_CONFIG_D1
+config USER_SUB_CONFIG_D1_2
+    bool "This User Sub Config D1_2"
+    ---help---
+        User Sub Config D1_2
+
+config USER_SUB_CONFIG_D1_3
+    bool "This User Sub Config D1_3"
+    default y
+    ---help---
+        User Sub Config D1_3
+endif
+
+# 用户配置D2
+menuconfig USER_CONFIG_D2
+    bool "This User Config D2"
+    ---help---
+        User Config D2
+
+config USER_SUB_CONFIG_D2_1
+    bool "This User Sub Config D2_1"
+    default y
+    ---help---
+        User Sub Config D2_1
+
+if USER_CONFIG_D2
+config USER_SUB_CONFIG_D2_2
+    bool "This User Sub Config D2_2"
+    ---help---
+        User Sub Config D2_2
+
+config USER_SUB_CONFIG_D2_3
+    bool "This User Sub Config D2_3"
+    default y
+    ---help---
+        User Sub Config D2_3
+endif
+
+# 用户配置D3
+menuconfig USER_CONFIG_D3
+    bool "This User Config D3"
+    default y
+    ---help---
+        User Config D3
+
+if USER_CONFIG_D3
+config USER_SUB_CONFIG_D3_1
+    bool "This User Sub Config D3_1"
+    default y
+    ---help---
+        User Sub Config D3_1
+
+config USER_SUB_CONFIG_D3_2
+    bool "This User Sub Config D3_2"
+    ---help---
+        User Sub Config D3_2
+endif
+
+config USER_SUB_CONFIG_D3_3
+    bool "This User Sub Config D3_3"
+    default y
+    ---help---
+        User Sub Config D3_3
+
+# 用户配置D4
+menuconfig USER_CONFIG_D4
+    bool "This User Config D4"
+    ---help---
+        User Config D4
+
+if USER_CONFIG_D4
+config USER_SUB_CONFIG_D4_1
+    bool "This User Sub Config D4_1"
+    default y
+    ---help---
+        User Sub Config D4_1
+
+config USER_SUB_CONFIG_D4_2
+    bool "This User Sub Config D4_2"
+    ---help---
+        User Sub Config D4_2
+endif
+
+config USER_SUB_CONFIG_D4_3
+    bool "This User Sub Config D4_3"
+    default y
+    ---help---
+        User Sub Config D4_3
+

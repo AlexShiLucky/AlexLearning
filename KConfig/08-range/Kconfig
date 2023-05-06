@@ -1,0 +1,15 @@
+mainmenu "This is MainMenu Configuration"
+
+config START_YEAR
+	int "Start year"
+	default 2018
+	range 1970 2106
+	---help---
+		Start year config
+
+config MEMORY_START
+	hex "Memory Start"
+	default 0x00001000
+	range 0 0x00008000
+	---help---
+		Memory Start config

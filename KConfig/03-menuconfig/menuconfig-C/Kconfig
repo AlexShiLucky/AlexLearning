@@ -1,0 +1,54 @@
+mainmenu "This is MainMenu Configuration"
+
+# 用户配置C1
+menuconfig USER_CONFIG_C1
+    bool "This User Config C1"
+    default y
+    ---help---
+        User Config C1
+
+# 子菜单
+config USER_SUB_CONFIG_C1_1
+    bool "This User Sub Config C1_1"
+    depends on USER_CONFIG_C1
+    ---help---
+        User Sub Config C1_1
+
+config USER_SUB_CONFIG_C1_2
+    bool "This User Sub Config C1_2"
+    depends on USER_CONFIG_C1
+    default y
+    ---help---
+        User Sub Config C1_2
+
+config USER_SUB_CONFIG_C1_3
+    bool "This User Sub Config C1_3"
+    depends on USER_CONFIG_C1
+    ---help---
+        User Sub Config C1_3
+
+# 用户配置C2
+menuconfig USER_CONFIG_C2
+    bool "This User Config C2"
+    ---help---
+        User Config C2
+
+# 子菜单
+config USER_SUB_CONFIG_C2_1
+    bool "This User Sub Config C2_1"
+    depends on USER_CONFIG_C2
+    ---help---
+        User Sub Config C2_1
+
+config USER_SUB_CONFIG_C2_2
+    bool "This User Sub Config C2_2"
+    depends on USER_CONFIG_C2
+    default y
+    ---help---
+        User Sub Config C2_2
+
+config USER_SUB_CONFIG_C2_3
+    bool "This User Sub Config C2_3"
+    depends on USER_CONFIG_C2
+    ---help---
+        User Sub Config C2_3

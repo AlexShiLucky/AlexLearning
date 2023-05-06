@@ -1,0 +1,28 @@
+mainmenu "This is MainMenu Configuration"
+
+comment "This is comment"
+
+config USER_CONFIG1
+    bool "This User Config 1"
+    ---help---
+        User Config 1
+
+comment "This is User Config1 Comment"
+    depends on USER_CONFIG1
+
+config USER_CONFIG2
+    bool "This User Config 2"
+    ---help---
+        User Config 2
+
+comment "This is User Config2 Comment"
+    depends on !USER_CONFIG2
+    
+config USER_CONFIG3
+    bool "This User Config 3"
+    ---help---
+        User Config 3
+
+if USER_CONFIG3
+comment "This is User Config3 Comment"
+endif

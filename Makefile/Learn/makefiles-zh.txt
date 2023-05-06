@@ -1,0 +1,926 @@
+Linux内核的Makefiles
+ 
+这个文档描述Linux内核的Makefiles
+ 
+=== 目录
+ 
+         ===1 概要
+         ===2 Makefiles对于不同角色的作用
+         ===3 kbuild文件
+            --- 3.1 目标定义
+            --- 3.2 Built-in对象目标 - obj-y
+            --- 3.3 可加载模块目标 - obj-m
+            --- 3.4 导出符号的对象
+            --- 3.5 库文件目标 - lib-y
+            --- 3.6 进入子目录
+            --- 3.7 编译标记
+            --- 3.8 命令行依赖项
+            --- 3.9 依赖性跟踪
+            --- 3.10 特殊规则
+            --- 3.11 $(CC) 支持的函数
+ 
+         ===4 主机程序支持
+            --- 4.1 一个简单的支持主机程序例子
+            --- 4.2 复合主机程序
+            --- 4.3 定义共享库
+            --- 4.4 使用C++的主机程序
+            --- 4.5 控制主机程序的编译选项
+            --- 4.6 主机程序的最终建立
+            --- 4.7 使用hostprogs-$(CONFIG_FOO)
+ 
+         ===5 Kbuild的清除机制
+ 
+         ===6 具体架构的Makefiles
+            --- 6.1 设置用来调整生成架构的变量
+            --- 6.2 增加先决条件到archprepare
+            --- 6.3 递归时列出需要访问的目录
+            --- 6.4 与架构相关的启动映像
+            --- 6.5 建立非kbuild的目标
+            --- 6.6 用来建立启动映像的命令
+            --- 6.7 自定义kbuild命令
+            --- 6.8 预处理链接脚本
+ 
+         ===7 Kbuild变量
+         ===8 Makefile语言
+         ===9 贡献者
+         ===10 下一步的工作
+ 
+=== 1 概要
+ 
+Makefiles包含下面5个部分：
+ 
+         Makefile                                        顶层Makefile文件.
+         .config                                            内核配置文件
+         arch/$(ARCH)/Makefile            体系架构的Makefile文件.
+         scripts/Makefile.*                      对于所有kbuild和Makefiles都有效的规则等
+         kbuildMakefiles                          大约有500个makefiles
+ 
+顶层Makefiles读取内核配置程序生成的.config文件。
+ 
+顶层Makefile用来生成两个主要的目标：vmlinux（内核映像）和模块（任何模块文件）。
+Makefile通过递归遍历内核树中的所有子目录来生成这些目标。
+递归访问的子目录列表时依靠内核配置文件来决定的。顶层Makefile包含一个名叫arch/$(ARCH)/Makefile的体系架构Makefile。这个Makefile文件向顶层Makefile提供具体的架构信息。
+ 
+每个子目录都有一个kbuild Makefile，这个Makefile承载着从上层Makefile传递下来的命令。kbuild Makefile使用.config文件中的信息来生成文件列表，kbuild使用这个文件列表来决定生成需要加载入内核的目标或者模块。
+ 
+scripts/Makefile.*包含了所有的定义、规则等等。基于kbuild makefiles使用这些定义、规则可以构建内核。
+ 
+ 
+=== 2 Makefiles对于不同角色的作用
+ 
+有四类不同的人会用到Makefiles。
+ 
+*用户*是生成内核的人。这类人通常使用“make menuconfig”或者“make”命令。他们通常不去阅读或者修改makefile文件（或者其它任何源文件）。
+ 
+*一般的开发者*是工作在内核外层的人，比如设备驱动，文件系统以及网络协议。这些人需要去维护他们修改的子系统的kbuild Makefiles。为了有效地去实现这些工作，他们通常取药一些关于内核makefile的整体知识，加上一些关于kuild公共接口的具体信息。
+ 
+*架构开发者*是那些工作对象是整个体系架构的人，比如sparc或者ia64。架构开发者需要知道架构Makefile，同时也需要了解kbuild Makefiles。
+ 
+*Kbuild开发者*这类人的工作对象是整个内核系统本身。他们需要知道内核Makefiles的方方面面。
+ 
+这个文档的适合读者是一般开发者和架构开发者。
+ 
+ 
+=== 3  kbuild文件
+ 
+内核中的大多数Makefiles是使用kbuild基本语法规则的kbuild Makefiles。这一章介绍kbuild makefiles的语法。
+kbuild文件的首选名字是'Makefile'，但是'Kbuild'也可以使用。如果'Makefile'和'Kbuild' 文件同时存在，那么'Kbuild'文件将会被使用。
+ 
+3.1节“目标定义”只是一个快速入门，更多的内容请见后面的章节。
+ 
+--- 3.1 目标定义
+          
+              目标定义是kbuildMakefile文件的主要部分（核心），它们定义了将要被构建的文件，任何具体的编译选项，以及任何将要递归进入的子目录。
+ 
+      最简单的kbuild makefile只包含一行：
+ 
+      例子：
+                       obj-y += foo.o
+        
+       这一行告诉kbuild这个目录只有一个叫做foo.o的的目标。foo.o将从foo.c或者foo.S生成。
+ 
+       如果foo.o将被生成为一个模块，那么就使用obj-m变量。因此下面的模版经常会被使用：
+ 
+       例子：
+                       obj-$(CONFIG_FOO) += foo.o
+ 
+       $(CONFIG_FOO)等于y（编译进内核）或者m（编译为模块）。如果$(CONFIG_FOO)既不是y也不是m，那么这个文件就不会被编译也不会被链接。
+ 
+--- 3.2 编译进内核的目标对象 - obj-y
+     
+      KbuildMakefile在$(obj-y)列表中指定了编译进vmlinux的对象文件。这个列表依靠内核配置文件生成。
+ 
+      Kbuild编译所有的$(obj-y)文件。然后调用"$(LD)-r"将这些编译生成的文件合成到一个built-in.o文件中。Built-in.o稍后会被父层Makfile链接到vmlinux中。
+ 
+      $(obj-y)列表中文件的顺序是有意义的。文件可以在$(obj-y)列表中重复，但是只有第一个出现的文件会被编译到built-in.o中，而接下来出现的重复文件会被忽略。
+ 
+      链接顺序也是有意义的。因为某些函数（比如(module_init() / __initcall)）在系统启动的过程中将会按照它们出现的顺序调用。所以记住改变链接顺序将会造成一些不确定情况。比如改变你的SCSI控制器的的被检测顺序，那么你的磁盘就会被重新编号。
+ 
+       例子：
+                      #drivers/isdn/i4l/Makefile
+                    # Makefile for the kernel ISDN subsystemand device drivers.
+                      # Each configuration option enables a listof files.
+                      obj-$(CONFIG_ISDN)             += isdn.o
+                      obj-$(CONFIG_ISDN_PPP_BSDCOMP) +=isdn_bsdcomp.o
+ 
+--- 3.3 可加载模块目标 - obj-m
+ 
+      $(obj-m) 指定一个目标文件将会被编译为一个可加载的内核模块。
+ 
+      一个模块可以由一个或者多个源文件编译生成。对于模块由一个源文件生成的情况，kbuild makefile只需要简单地将源文件加入到$(obj-m)列表。
+ 
+       例子：
+            #drivers/isdn/i4l/Makefile
+                         obj-$(CONFIG_ISDN_PPP_BSDCOMP)+= isdn_bsdcomp.o
+ 
+       注意：这个例子中$(CONFIG_ISDN_PPP_BSDCOMP)变量的值等于’m’。
+ 
+          如果一个内核模块由多个源文件编译而成，你需要像上面例子一样指定需要生成的模块。
+ 
+                Kbuild需要知道你要的模块是从哪些文件编译生成的，所以你必须通过设置$(<module_name>-objs)变量来让Kbuild知道。
+ 
+                例子：
+                       #drivers/isdn/i4l/Makefile
+                       obj-$(CONFIG_ISDN) += isdn.o
+                       isdn-objs := isdn_net_lib.o isdn_v110.o isdn_common.o         
+ 
+                在这个例子中，模块的名字是isdn.o。Kbuild将会编译生成$(isdn-objs)变量中列出的目标文件。然后运行"$(LD) -r"命令来链接列表中的文件从而生成isdn.o。
+ 
+                Kbuild通过后缀名-objs和-y来判断一个对象是否是一个复合对象。这允许Makefiles使用CONFIG_标记的值来决定一个对象是否是复合对象的一部分。
+ 
+               例子：
+                     #fs/ext2/Makefile
+                        obj-$(CONFIG_EXT2_FS)        += ext2.o
+                         ext2-y                       := balloc.o bitmap.o
+                        ext2-$(CONFIG_EXT2_FS_XATTR) += xattr.o
+ 
+                在这个例子中，只有当$(CONFIG_EXT2_FS_XATTR)值等于’y’，xattr.o才是是复合对象ext2.o的一部分。
+ 
+                注意：当然，在你将一个对象编译进内核的情况下，上面的语法也是有效的。所以，如果你将CONFIG_EXT2_FS=y，那么kbuild将会像你所期望的一样，生成一个ext2.o文件并且连接到built-in.o文件中去。
+ 
+--- 3.4 导出符号的对象
+ 
+      在makefiles中，模块不需要任何特殊的表示就可以导出符号。
+ 
+--- 3.5库文件目标 - lib-y
+ 
+      使用obj-*为前缀列出的对象是指定目录中将要编译生成的模块或者编译进built-in.o的目标。但是也有一些列出的目标有可能会包含到库文件lib.a中去。
+                以lib-y开头列出的对象将会被包含到对应目录下的一个单独的库文件中。
+                在obj-y列表中的对象以及附加在lib-y列表中的对象将不会被包含到库文件中，因为它们可以以任何方式读取。
+                为了保持一致性，lib-m列表中的对象将被包含进lib.a。
+ 
+                需要注意的是同一个kbuildmakefile 可能会列出编译进内核的文件以及包含进库中的文件。因此同一个目录可能会包含一个built-in.o和一个lib.a文件。
+ 
+例子：
+            #arch/i386/lib/Makefile
+            lib-y    := checksum.o delay.o
+ 
+这个例子将会基于checksum.o和delay.o生成一个库文件lib.a。只有将目录置于列      
+表libs-y中，kbuild才会知道该目录下有一个lib.a要生成。
+其它详情请看“6.3递归时列出需要访问的目录”。
+ 
+一般只有lib/和arch/*/lib目录下可以使用lib-y
+ 
+ 
+--- 3.6 进入子目录
+     
+                一个Makefile文件只负责编译它所处目录的文件。子目录中的文件应该由子目录中的Makefile来进行维护。编译系统会自动递归进入子目录，从而提供一种让编译系统知道子目录存在的机制。
+ 
+                为了达到这个目的，将使用obj-y和obj-m。
+                ext2在一个单独的文件中，fs/目录中的Makefile只用如下的表达式来告诉kbuild来进入子目录。
+ 
+                例子：
+                            #fs/Makefile
+                       obj-$(CONFIG_EXT2_FS) += ext2/
+ 
+                如果obj-中相应的CONFIG_EXT2_FS变量被设置成‘y’或者‘m’，那么kbuild将会进入到ext2目录中。
+                Kbuild只能利用这些信息来决定是否需要进入一个子目录。子目录中的Makefile具体指定哪些目标会是模块，而哪些会是编译进内核的。
+ 
+                使用CONFIG_变量给目录名赋值是一个非常好的办法。当CONFIG_选项既不是‘y’也不是‘m’的时候，kbuild就能完全忽略该目录。
+ 
+--- 3.7 编译标记
+ 
+  ccflags-y,asflags-y 和 ldflags-y
+                这三个标记只适用于分配它们的kbuild makefile。它们一般在递归生成过程中被正常的cc，as和ld调用。
+                注意：之前命名的具有相同行为的标记为：EXTRA_CFLAGS, EXTRA_AFLAGS and EXTRA_LDFLAGS.这些标记虽然现在仍然支持，但是已经被弃用了。
+ 
+                ccflags-y指定了用$(CC)编译C文件时的选项。
+ 
+                例子：
+                            #drivers/sound/emu10k1/Makefile
+                            ccflags-y += -I$(obj)
+                           ccflags-$(DEBUG)+= -DEMU10K1_DEBUG
+               
+                这个变量时必须的。因为顶层Makefile具有$(KBUILD_CFLAGS)变量，并且将该变量作为整棵内核树的编译选项。
+ 
+                asflags-y是一个类似于ccflags-y的字符串，它是编译汇编文件的过程中一个选项。
+ 
+                例子：
+                            #arch/x86_64/kernel/Makefile
+                            asflags-y := -traditional
+ 
+                在任何目录中，ldflags-y是$(LD)的一个选项。
+ 
+                例子：
+                            #arch/m68k/fpsp040/Makefile
+                           ldflags-y:= -x
+ 
+CFLAGS_$@, AFLAGS_$@
+                CFLAGS_$@,和AFLAGS_$@只对于当前kbuildmakefile文件中的命令有效。
+ 
+                对于每个文件，$(CFLAGS_$@)指定了$(CC)的选项。$@的值指定了一个文件名。
+ 
+                例子：
+                            #drivers/scsi/Makefile
+                            CFLAGS_aha152x.o =   -DAHA152X_STAT -DAUTOCONF
+                            CFLAGS_gdth.o    = # -DDEBUG_GDTH=2 -D__SERIAL__ -D__COM2__\
+                                                                    -DGDTH_STATISTICS
+                            CFLAGS_seagate.o =   -DARBITRATE -DPARITY -DSEAGATE_USE_ASM
+ 
+                这三行指定了aha152x.o,gdth.o,and seagate.o这三个文件的编译选项。
+ 
+                $(AFLAGS_$@)是一个类似的标记，不过它是用于汇编语言源文件。
+ 
+                例子：
+                            #arch/arm/kernel/Makefile
+                            AFLAGS_head-armv.o :=-DTEXTADDR=$(TEXTADDR) -traditional
+                            AFLAGS_head-armo.o :=-DTEXTADDR=$(TEXTADDR) –traditional
+ 
+--- 3.9 依赖性跟踪
+ 
+                  Kbuild使用下面信息来跟踪依赖项：
+                1) 所有的先决文件(both*.c and *.h)
+                2) 在所有先决文件中使用的CONFIG_选项
+                3) 编译目标中使用的命令行
+ 
+                因此，如果你改变了$(CC)的某个选项，那么所有相关的文件将会被重新编译。
+ 
+--- 3.10 特殊规则
+ 
+                当kbuild机制没有提供必要的支持时，特殊规则就起作用了。一个典型的例子是在生成过程中生成的头文件。
+                另一个例子是与具体架构相关的Makefiles需要特殊规则来准备启动映像。
+ 
+                特殊规则的书写和正常的Make规则一样。
+                Kbuild不在Makefile所在的目录中执行，所以所有的特殊规则需要提供相对路径给先决文件和目标文件。
+ 
+                有两个用来定义特殊规则：
+  $(src)
+                $(src)是一个用来指向makfile所在目录的相对路径。必须使用$(src) 变量来引用src源码树中的文件。
+ 
+  $(obj)
+                $(obj)是一个用来指向目标文件保存位置的相对目录。必须使用$(obj)变量来引用生成的文件。
+ 
+                例子：
+                            #drivers/scsi/Makefile
+                            $(obj)/53c8xx_d.h: $(src)/53c7,8xx.scr$(src)/script_asm.pl
+                            $(CPP)-DCHIP=810 - < $< | ... $(src)/script_asm.pl
+ 
+                这是一个遵循正常make语法的特殊规则。
+                目标文件依赖于两个先决文件。对目标文件的引用使用$(obj)作为前缀，而对先决文件的引用则使用$(src)（因为它们不是生成文件）。
+ 
+--- 3.11 $(CC) 支持的函数
+                内核可以使用几个不同版本的$(CC)来编译，每个版本都支持一个唯一的特征和选项集合。Kbuild提供对$(CC)的无效选项的检查。$(CC)是通常的gcc编译器，但是其它的编译器也是可以的。
+ 
+  as-option
+                as-option用来检查$(CC)是否 – 当用来编译汇编(*.S)文件 – 支持给定的选项。当不支持第一个选项的时候，第二个可选选项可能会被指定。
+ 
+                例子：
+                            #arch/sh/Makefile
+                            cflags-y += $(call as-option,-Wa$(comma)-isa=$(isa-y),)
+ 
+                在上面的例子中，当支持$(CC)的时候，cflags-y将等于选项-Wa$(comma)-isa=$(isa-y)的值。第二个参数是可选的，当不支持第一个选项，并且第二个选项有给出的时候，它就会被使用。
+ 
+  ld-option
+                ld-option用来在链接目标文件时检查是否支持给定的选项。当不支持第一个选项的时候，一个可选的第二选项可能会被支持。
+ 
+                例子：
+                            #arch/i386/kernel/Makefile
+                            vsyscall-flags += $(call ld-option,-Wl$(comma)--hash-style=sysv)
+ 
+                在上面的例子中，如果支持$(CC)，那么vsyscall-flags就会被赋予-Wl$(comma)--hash-style=sysv选项的值。第二个参数是可选的，当不支持第一个选项，并且第二个选项有给出的时候，它就会被使用。
+ 
+  as-instr
+                as-instr用来检查汇编器是否报告了一个特定的指令，然后输入选项1或者选项2。C测试指令支持C转义。
+                注意：as-instr-option使用KBUILD_AFLAGS作为$(AS)的选项。
+ 
+  cc-option
+                cc-option用来检查$(CC)是否支持一个给定的选项，而不是支持使用一个可选的第二选项。
+ 
+                例子：
+                            #arch/i386/Makefile
+                            cflags-y += $(call cc-option,-march=pentium-mmx,-march=i586)
+ 
+                在上面的例子中，如果支持$(CC)，那么cflags-y将会被赋予-march=pentium-mmx选项的值，否则就赋予-march=i586选项的值。对于cc-option，第二个参数是可选的。如果第二参数被省略了并且第一个选项不被支持，那么cflags-y将会被置为空。
+                注意：cc-option使用KBUILD_CFLAGS作为$(CC)的选项。
+ 
+  cc-option-yn
+                cc-option-yn用来检查gcc是否支持一个给定的选项。如果支持就返回‘y’，否则就返回‘n’。
+ 
+                例子:
+                            #arch/ppc/Makefile
+                           biarch:= $(call cc-option-yn, -m32)
+                            aflags-$(biarch) += -a32
+                            cflags-$(biarch) += -m32
+ 
+                在上面的例子中，如果$(CC)支持-m32选项，那么$(biarch)的值将会被置为y。当$(biarch)的值等于‘y’，那么扩展的变量$(aflags-y)和$(cflags-y)将会分别等于-a32和-m32.
+                注意：cc-option-yn使用KBUILD_CFLAGS作为$(CC)的选项。
+ 
+  cc-option-align
+                版本号大于3.0的gcc为了指定函数以及循环的对齐方式，改变了选项的类型。当为对齐选项使用前缀时，$(cc-option-align)将选择合适的前缀：
+                gcc< 3.00
+                   cc-option-align= -malign
+                gcc>= 3.00
+                   cc-option-align= -falign  
+ 
+                例子：
+                            KBUILD_CFLAGS+= $(cc-option-align)-functions=4
+               
+                在上面的例子中，选项-falign-functions=4用于gcc >=3.00的情况。对于gcc < 3.00的情况,使用 -malign-functions=4 选项.
+                注意：cc-option-align使用KBUILD_CFLAGS作为$(CC) 的选项
+ 
+  cc-version
+                cc-version返回一个用数字表示的$(CC)编译器版本。数字版本的格式是<major><minor>，这两部分都是数字。比如gcc 3.41将会返回0341.
+                当一个特定的$(CC)版本在某个地方是错误的，cc-version就会非常有用。比如尽管cc-version选项会被gcc给接受，但是-mregparm=3在某些gcc版本中还是不会成立。
+ 
+                例子：
+                            #arch/i386/Makefile
+                            cflags-y += $(shell \
+                            if [ $(call cc-version) -ge 0300 ] ;then \
+                                     echo "-mregparm=3"; fi ;)
+ 
+                在上面的例子中，-mregparm=3只有当gcc版本大于等于3.0的时候才成立。
+ 
+  cc-ifversion
+                cc-ifversion用来测试$(CC)的版本，并且当版本表达式的值为真的时候，它的值等于最后一个参数的值。
+ 
+                例子：
+                            #fs/reiserfs/Makefile
+                            ccflags-y := $(call cc-ifversion, -lt,0402, -O1)
+ 
+                在这个例子中，当$(CC)的版本号小于4.2的时候，ccflags-y的值将会等于-01的值。
+                cc-ifversion语序所有的shell操作符：
+                -eq,-ne, -lt, -le, -gt, 和-ge
+                在这个例子中，第三个参数可以是一个文本，但是它也可以是一个扩展变量或者宏。
+ 
+  cc-fullversion
+                cc-fullversion用于需要gcc完整版本号的时候。一个典型的应用是当一个具体GCC版本号被损坏的情况。cc-fullversion比cc-version提供了一个更加具体的版本号。
+ 
+                例子：
+                            #arch/powerpc/Makefile
+                           $(Q)iftest "$(call cc-fullversion)" = "040200" ; then \
+                            echo-n '*** GCC-4.2.0 cannot compile the 64-bit powerpc ' ; \
+                            false; \
+                           fi
+                在这个例子中，对于某一个具体的GCC版本，build会提示用户错误。
+ 
+   cc-cross-prefix
+                cc-cross-prefix用来检查包含$(CC)的路径中是否存在列表前缀中的某一个。$(CC)路径中存在的第一个列表中的前缀将被返回– 如果不存在列表中的前缀，那么就返回空。
+                在调用cc-cross-prefix的过程中，附加的前缀使用单个空格来分开。
+                这个功能用在与体系架构相关的Makefile中。当试图给CROSS_COMPILE赋值但是又存在多个可以选择的值时，这个功能就能发挥作用了。
+                建议只有在交叉编译时（主机架构与目标架构不一样）才设置CROSS_COMPILE的值。如果CROSS_COMPILE的值已经被设置，那么就去除它原来的值。
+ 
+                例子：
+                            #arch/m68k/Makefile
+                            ifneq ($(SUBARCH),$(ARCH))
+                           ifeq ($(CROSS_COMPILE),)
+                                  CROSS_COMPILE := $(callcc-cross-prefix, m68k-linux-gnu-)
+                                     endif
+                           endif
+ 
+ 
+=== 4 主机程序支持
+ 
+Kbuild支持在编译阶段使用主机上的可执行文件。
+为了使用主机可执行文件需要两个步骤。
+ 
+第一步是告诉kbuild存在一个主机程序。这可以通过使用hostprogs-y变量来实现。
+第二步是给可执行文件增加一个明确地依赖项。这可以通过两种方法实现。通过在规则中增
+加依赖项或者使用$(always)变量。
+这两种可能性都在下面描述。
+ 
+--- 4.1 一个简单的主机程序例子
+               
+                在某些情况下，需要在build运行的主机上编译和运行一个程序。
+                下面的几行将告诉kbuild有一个程序bin2hex将要在build运行的主机上编译运行。
+ 
+                例子：
+                            hostprogs-y:= bin2hex
+ 
+                kbuild假设上面例子中的bin2hex是从一个名叫bin2hex.c的c源文件编译生成的，它与Makefile处于同一个目录下面。
+ 
+--- 4.2 复合主机程序
+ 
+                主机程序可以基于复合对象生成。
+                用来给主机程序定义复合对象的语法与定义内核对象的语法类似。
+                $(<executable>-objs)变量列出了最后链接可执行文件的所有对象。
+ 
+                例子：
+                            #scripts/lxdialog/Makefile
+                            hostprogs-y   := lxdialog
+                            lxdialog-objs := checklist.o lxdialog.o
+ 
+                带有.o后缀名的对象是从相应.c源文件编译而来。在上面的例子中，checklist.c用来编译生成checklist.o，lxdialog.c用来编译生成lxdialog.o。
+                最后，这两个.o文件链接生成最终的可执行文件lxdialog。
+                注意：<executable>-y的语法在主机程序中是不允许的。
+ 
+--- 4.3 定义共享库
+ 
+                具有.so后缀名的对象被认为是共享库，共享库会被编译成为与位置无关的对象。
+                Kbuild提供了对共享库的支持，但是对共享库的使用应该严格限制。
+                在下面的例子中，共享库libkconfig.so用来连接可执行文件conf。
+               
+                例子：
+                            #scripts/kconfig/Makefile
+                            hostprogs-y     := conf
+                            conf-objs       := conf.o libkconfig.so
+                            libkconfig-objs := expr.o type.o
+ 
+                在makefile文件中，共享库需要相应的-objs行，在上面的例子中，共享库libkconfig由expr.o和type.o两个对象组成。
+                expr.o和type.o将会编译为与位置无关的代码，并且连接成为共享库libkconfig.so。c++不支持共享库。
+ 
+--- 4.4 使用C++的主机程序
+ 
+                Kbuild提供对使用C++编写而成的主机程序的支持。接受它完全是为了支持kconfig，一般不建议使用。
+ 
+                例子：
+                            #scripts/kconfig/Makefile
+                            hostprogs-y   := qconf
+                            qconf-cxxobjs := qconf.o
+ 
+                在上面的例子中可执行文件由名叫qconf.cc的C++文件组成– 使用$(qconf-cxxobjs)变量来识别。
+ 
+                如果qconf由.c和.cc和混合文件组成，那么需要一些额外的行来标记该行为。
+ 
+                例子：
+                            #scripts/kconfig/Makefile
+                            hostprogs-y   := qconf
+                            qconf-cxxobjs := qconf.o
+                            qconf-objs    := check.o
+ 
+--- 4.5控制主机程序的编译选项
+                  
+                当编译一个主机程序的使用，有可能会对其设置具体的标记。编译主机程序的过程中可以使用$(HOSTCC)变量来传递$(HOSTCFLAGS)变量中指定的选项。
+                可以使用HOST_EXTRACFLAGS变量来设置对所有当前Makefile中创建的主机都有效的标记。
+               
+                例子：
+                            #scripts/lxdialog/Makefile
+                            HOST_EXTRACFLAGS +=-I/usr/include/ncurses
+ 
+                可以使用下面的命令来对单个文件设定具体的标记：
+ 
+                例子：
+                            #arch/ppc64/boot/Makefile
+                           HOSTCFLAGS_piggyback.o:= -DKERNELBASE=$(KERNELBASE)
+ 
+                当然可以对编译器指定附加的选项。
+ 
+                例子：
+                            #scripts/kconfig/Makefile
+                           HOSTLOADLIBES_qconf:= -L$(QTDIR)/lib
+ 
+                当连接qconf的时候，将会传递额外的选项"-L$(QTDIR)/lib"给编译器。
+ 
+--- 4.6主机程序的最终建立
+               
+                Kbuild只有当主机程序被引用为一个先决条件时才会最终建立它们。
+                这可以通过两种方法实现：
+               
+                （1）将先决条件明确地在特殊规则中列出
+ 
+                例子：
+                            #drivers/pci/Makefile
+                            hostprogs-y := gen-devlist
+                            $(obj)/devlist.h: $(src)/pci.ids $(obj)/gen-devlist
+                                     ( cd $(obj); ./gen-devlist ) < $<
+                只有当$(obj)/gen-devlist更新后，目标$(obj)/devlist.h才会被编译。注意特殊规则中对主机程序的引用必须使用前缀$(obj)。
+ 
+                （2）使用$(always)变量
+                当没有合适的特殊规则，并且在kbuild进入makefile的时候就要生成主机程序，那么就应该使用$(always)变量。
+ 
+                例子：
+                            #scripts/lxdialog/Makefile
+                           hostprogs-y   := lxdialog
+                            always        := $(hostprogs-y)
+                 
+                   这将告诉kbuild编译lxdialog，即使它没有在任何规则中引用。
+ 
+--- 4.7 使用 hostprogs-$(CONFIG_FOO)
+ 
+                Kbuild文件中的一种典型形式是这样的：
+               
+                例子:
+                            #scripts/Makefile
+                           hostprogs-$(CONFIG_KALLSYMS)+= kallsyms
+ 
+                Kbuild知道‘y’是将文件编译进内核，而‘m’是将文件作为模块。所以如果一个文件的配置标志等于‘m’，kbuild还是会将它编译成二进制代码。换句话说，Kbuild处理hostprogs-m完全和处理hostprogs-y的方法一样。不过在没有CONFIG标志的时候，只建议使用hostprogs-y。
+ 
+ 
+=== 5 Kbuild的清除机制
+ 
+“make clean”命令删除大多数内核编译目录的目标树中生成的文件。要删除的文件包括所
+编译过程中生成的文件，比如主机程序。Kbuild知道(hostprogs-y), $(hostprogs-m), $(always),
+$(extra-y) 和$(targets)这些列表中存在的目标，这些目标都会在执行"make clean"命令后删除。
+匹配"*.[oas]", "*.ko"模式的文件加上一些由kbuild生成的附加文件，在"makeclean"执行时都
+会从内核源码树中删除。
+ 
+在kbuild makefiles中可以使用(clean-files)变量来指定一些额外要删除的文件。
+ 
+                例子：
+                            #drivers/pci/Makefile
+                            clean-files := devlist.h classlist.h
+ 
+当执行"make clean"后，"devlist.h  classlist.h"这两个文件也将会被删除。如果没有给出文件
+的绝对地址（以‘/’开头），那么kbuild就会假设该文件与makefile在同一目录下。
+ 
+可以使用下面的方法删除一个多层次目录：
+ 
+                例子：
+                            #scripts/package/Makefile
+                            clean-dirs := $(objtree)/debian/
+ 
+上面的例子中将会删除目录debian，以及它包含的所有子目录。如果没有给出目录
+的绝对地址（以‘/’开头），那么kbuild就会假设该目录与makefile在同一目录下。
+ 
+如果makefile中存在类似"obj-* := dir/"的语句，那么kbuild就必须进入到指定的子目录中去，
+但是在于体系架构相关的makefiles中kbuild的机制不够全面，这种情况需要明确指出来。
+ 
+                例子：
+                            #arch/i386/boot/Makefile
+                           subdir-:= compressed/
+ 
+上面的等式告诉kbuild在执行"make clean"命令时，同时也需要进入子目录compressed/中执
+行该命令。
+ 
+存在一个叫做archclean的可选目标，用来支持生成最终启动映像的Makefiles的清除机制。
+ 
+                例子：
+                            #arch/i386/Makefile
+                            archclean:
+                                     $(Q)$(MAKE) $(clean)=arch/i386/boot
+ 
+当执行"make clean"命令时，make会进入arch/i386/boot目录，并且像一般情况一样进行清
+除。arch/i386/boot目录中的Makefile可以使用subdir-来跟踪到更深层次的目录中去。
+ 
+注意1：arch/$(ARCH)/Makefile不能使用"subdir-"，因为那个文件是包含在顶层makefile中，
+而kbuild机制在那个时候还是不能工作的。
+ 
+注意2：在执行"make clean"时，所有core-y, libs-y, drivers-y 和 net-y列表中的目录都将会被
+访问。
+ 
+ 
+=== 6具体架构的Makefiles
+ 
+顶层Makefile在开始进入单个的目录之前会设置环境并且做一些准备工作。顶层makefile
+中包含一些通用部分，而arch/$(ARCH)/Makefile包含为了表示架构而建立kbuild需要的东西。
+arch/$(ARCH)/Makefile建立了一些变量以及定义了一些目标来做准备。
+ 
+当kbuild执行时，将会执行下面这些步骤（不一定完全是）：
+1）  配置内核 => 产生 .config文件
+2）  将内核版本号保存到include/linux/version.h文件中
+3）  符号链接include/asm到include/asm-$(ARCH)
+4）  更新目标的所有先决条件：-附加的先决条件在arch/$(ARCH)/Makefile中指定
+5）  递归地进入init-* core* drivers-* net-* libs-*列表中的列出的所有目录，并且编译生成所有目标。
+-         上述变量的值是在arch/$(ARCH)/Makefile中扩充
+ 
+6）  所有生成的目标将会被链接最后生成vmlinux文件，它位于目标树的根部。
+7）  最终，特定于体系结构的那部分程序会做所有善后工作，并且生成最终的bootimage。
+-         建立boot记录
+-         准备initrd映像和类似的东西
+ 
+ 
+ 
+--- 6.1 设置用来调整生成架构的变量
+        
+  LDFLAGS                通用 $(LD) 选项
+        
+         用于所有调用连接器的标志。
+         经常指定仿真器就足够了。
+ 
+         例子：
+                   #arch/s390/Makefile
+                   LDFLAGS         := -m elf_s390
+         注意：ldflags-y可以进一步定制该标志的使用。见3.7章。
+ 
+  LDFLAGS_MODULE        $(LD)链接模块时的选项
+ 
+         LDFLAGS_MODULE用来指定$(LD)链接用于模块的.ko文件时的标志。
+         默认情况下“-r”是用于重定位输出。
+ 
+  LDFLAGS_vmlinux         $(LD)链接vmlinux时的选项
+        
+         当链接最终的vmlinux映像的时候，LDFLAGS_vmlinux指定传递给链接的附加标志。
+         LDFLAGS_vmlinux使用LDFLAGS_$@支持。
+ 
+         例子：
+                   #arch/i386/Makefile
+                   LDFLAGS_vmlinux:= -e stext
+ 
+  OBJCOPYFLAGS          objcopy标志
+ 
+         当使用$(callif_changed,objcopy)来转换一个.o文件时，OBJCOPYFLAGS中指定的标志就     会被使用。
+         $(callif_changed,objcopy)经常用来生成vmlinux中的原始二进制文件。
+ 
+         例子：
+                   #arch/s390/Makefile
+                   OBJCOPYFLAGS:= -O binary
+ 
+                   #arch/s390/boot/Makefile
+                   $(obj)/image:vmlinux FORCE
+                            $(callif_changed,objcopy)
+ 
+         这个例子中，二进制文件 $(obj)/image是vmlinux得一个二进制版本。$(call    if_changed,xxx)变量的使用将会在后面描述。
+ 
+  KBUILD_AFLAGS               $(AS)  汇编器标志
+ 
+         默认值 - 请看顶层Makfile文件
+         根据系统架构的要求进行追加或者修改。
+ 
+         例子:
+                   #arch/sparc64/Makefile
+                   KBUILD_AFLAGS+= -m64 -mcpu=ultrasparc
+ 
+  KBUILD_CFLAGS                $(CC)  编译器标志
+ 
+         默认值 - 请看顶层Makfile文件
+         根据系统架构的要求进行追加或者修改。
+ 
+         大多数情况下，KBUILD_CFLAGS变量值依赖于配置程序
+ 
+         例子：
+                   #arch/i386/Makefile
+                   cflags-$(CONFIG_M386)+= -march=i386
+                   KBUILD_CFLAGS+= $(cflags-y)
+ 
+         许多体系相关的Makefiles会动态运行目标C编译器来探测支持的选项：
+                  
+                   #arch/i386/Makefile
+ 
+                   ...
+                   cflags-$(CONFIG_MPENTIUMII)     += $(call cc-option,\
+                                                        -march=pentium2,-march=i686)
+                   ...
+                   #Disable unit-at-a-time mode ...
+                   KBUILD_CFLAGS+= $(call cc-option,-fno-unit-at-a-time)
+                   ...
+ 
+         第一个例子中使用了一个技巧，当一个配置选项被选择时，它的值会被扩展到‘y’。
+ 
+  CFLAGS_KERNEL                 $(CC)  为编译进内核指定的选项
+ 
+         $(CFLAGS_KERNEL)包含额外的C编译器标志用来编译常驻内存的代码。
+ 
+  CFLAGS_MODULE                $(CC)  为模块指定的选项
+ 
+       $(CFLAGS_MODULE)包含额外的C编译器标志用来编译可加载内核模块的代码。
+ 
+ 
+--- 6.2 增加先决条件到archprepare
+ 
+         archprepare：这是一条用来列出先决条件的规则，这些先决条件是build进入子目录前 必须建立的。
+这将从在包含汇编内容的头文件中使用。
+ 
+                   例子：
+                            #arch/arm/Makefile
+                            archprepare: maketools
+ 
+在这个例子中，在进入到子目录前目标文件maketools将会被处理。
+想要知道kbuild怎么支持生成偏移头文件，请看XXX-TODO这一章。
+ 
+--- 6.3 递归时列出需要访问的目录
+ 
+         一个体系相关的Makefile结合顶层Makefile定义了用来指定怎么编译vmlinux文件的变
+         量。注意没有给模块指定体系相关的区域；模块生成机制全是体系无关的。
+ 
+ 
+    head-y, init-y, core-y, libs-y, drivers-y,net-y
+ 
+         $(head-y)列出了首先要链接到vmlinux中的对象
+         $(libs-y)列出了lib.a归档文件可以被放置的目录。
+         剩下的列出了一个built-in.o对象文件可以被放置的目录。
+ 
+         $(init-y)对象将被放置在 $(head-y)后.
+         然后剩下的就按下面的顺序放置：
+         $(core-y),$(libs-y), $(drivers-y) and $(net-y).
+ 
+         顶层Makefile定义了所有通用目录的值，arch/$(ARCH)/Makefile只添加了体系相关的目  录。
+        
+         例子：
+                   #arch/sparc64/Makefile
+                   core-y+= arch/sparc64/kernel/
+                   libs-y+= arch/sparc64/prom/ arch/sparc64/lib/
+                   drivers-$(CONFIG_OPROFILE)  += arch/sparc64/oprofile/
+ 
+ 
+--- 6.4 与架构相关的启动映像
+ 
+       一个体系相关的Makefile指定了一系列目标，取出vmlinux文件，将它压缩到引导代码   中，然后复制生成的文件到某个地方。这个过程包含了许多安装命令。它的实际目的不     是标准化整个架构。
+ 
+         通常会将额外的处理程序放到arch/$(ARCH)/下的boot/目录中。
+ 
+         Kbuild没有提供任何有效的手段来支持编译boot/中指定的目标。因此应该手动调用         make arch/$(ARCH)/Makefile来生成boot/中的目标。
+        
+         一种比较提倡的方法是在arch/$(ARCH)/Makefile中包含一个快捷方式，当进入到     arch/$(ARCH)/boot/Makefile文件中时再使用完整的路径。
+ 
+         例子：
+                   #arch/i386/Makefile
+                   boot:= arch/i386/boot
+                   bzImage:vmlinux
+                            $(Q)$(MAKE)$(build)=$(boot) $(boot)/$@
+ 
+         "$(Q)$(MAKE)$(build)=<dir>"是一种提倡的方法来激活子目录中的make。
+ 
+         没有任何规则用来命名体系相关的目标，但是执行"make help"命令将会列出所有相关的         目标。为了支持这个命令，必须先定义$(archhelp)。
+ 
+         例子：
+                   #arch/i386/Makefile
+                   definearchhelp
+                     echo '* bzImage      - Image(arch/$(ARCH)/boot/bzImage)'
+                   endif
+ 
+         当不带任何参数执行make命令的时候，将会生成第一个遇到的目标。当前顶层Makefile        文件的第一个目标是all:。
+         默认情况下，每一个架构应该生成一个可引导映像。在"make help"中，默认目标使用一         个'*'来突出显示。向all:中添加一个新的先决条件：选择一个与vmlinux不同的默认目  标。
+ 
+         例子：
+                   #arch/i386/Makefile
+                   all:bzImage
+ 
+         当不带任何参数执行“make”命令时，bzImage将会被建立生成。
+ 
+--- 6.5 建立非kbuild的目标
+ 
+  extra-y
+        
+         extra-y指定在当前目录创建的额外目标，除了obj-*中指定的任何目标。
+ 
+         在下面两种情况下，将所有目标放在extra-y列表下是必要的：
+1）  使能kbuild来检查命令行中的改变 – 当 $(callif_changed,xxx) 被使用
+2）  kbuild知道在执行"make clean"时哪些文件需要删除
+ 
+         例子：
+                   #arch/i386/kernel/Makefile
+                   extra-y:= head.o init_task.o
+ 
+         在这个例子中，extra-y用来列出将要被建立的目标文件，但是这些文件不应该被链接    作为built-in.o的一部分。
+ 
+--- 6.6 用来建立启动映像的命令
+ 
+         Kbuild提供了一些宏用来帮助建立启动映像。
+ 
+  if_changed
+ 
+         if_changed是下面命令行的基础。
+ 
+         Usage:
+                   target:source(s) FORCE
+                            $(callif_changed,ld/objcopy/gzip)
+ 
+         当一个规则被求值的时候，会检查规则相对于上次被调用是否有文件被更新或者命令行         被改变。如果任何可执行文件的选项被改变，那么就会强制执行rebuild。
+         如果任何目标使用了if_changed，那么它必须放进$(targets)列表中，不然命令行的检查        会失败，并且目标会一直被建立。
+         $(targets)的等式中没有使用 $(obj)/前缀。
+         if_changed可以结合和6.7节"Customkbuild commands"中定义的用户命令。
+ 
+         注意：一个典型的错误就是忘记了 FORCE 先决条件。
+         另外一个常见的陷阱就是空格有时很显著；比如，下面的例子将会失败（注意逗号后面         的多余空格）：
+                   target:source(s) FORCE
+         #WRONG!#      $(call if_changed, ld/objcopy/gzip)
+ 
+  ld
+         链接目标。LDFLAGS_$@经常用来指定ld的选项。
+ 
+ objcopy
+         复制二进制。OBJCOPYFLAGS的使用经常在arch/$(ARCH)/Makefile文件中指定。
+         OBJCOPYFLAGS_$@可以用来设置附加的选项。
+ 
+  Gzip
+         压缩目标。使用最大的压缩限度来压缩目标。
+ 
+         例子：
+                   #arch/i386/boot/Makefile
+                   LDFLAGS_bootsect:= -Ttext 0x0 -s --oformat binary
+                   LDFLAGS_setup    := -Ttext 0x0 -s --oformat binary -ebegtext
+ 
+                   targets+= setup setup.o bootsect bootsect.o
+                   $(obj)/setup$(obj)/bootsect: %: %.o FORCE
+                            $(callif_changed,ld)
+ 
+         在这个例子中，有两个可能的目标，在它们在链接的时候需要不同的选项。通过使用     LDFLAGS_$@语法格式来指定链接选项 -每一个可能的目标都需要指定。
+         $(targets)代表的值是所有可能的目标，kbuild通过$(targets)来知道这些目标，然后执行 下面的操作：
+                   1）检查命令行的改变
+       2）执行make clean时删除目标
+ 
+         先决条件中的":%: %.o" 部分是一个简写方式，它可以让我们不用列出setup.o和    bootsect.o文件。
+         注意：一个常见的错误就是忘记"target :="赋值表达式，导致目标文件在没有明显原因   的情况下被重新编译。
+ 
+--- 6.7 自定义kbuild命令
+ 
+         当kbuild运行时KBUILD_VERBOSE=0，那么只正常显示一个命令的简写方式。
+         为了使能自定义命令这一行为，kbuild需要设置两个变量：
+         quiet_cmd_<command>          -被显示的部分
+               cmd_<command>        - 执行的命令名
+ 
+         例子：
+                   #
+                   quiet_cmd_image= BUILD   $@
+                         cmd_image = $(obj)/tools/build$(BUILDFLAGS) \
+                                                       $(obj)/vmlinux.bin > $@
+ 
+                   targets+= bzImage
+                   $(obj)/bzImage:$(obj)/vmlinux.bin $(obj)/tools/build FORCE
+                            $(callif_changed,image)
+                            @echo'Kernel: $@ is ready'
+ 
+         当更新 $(obj)/bzImage的时候，这一行
+        
+         BUILD    arch/i386/boot/bzImage
+ 
+         将会显示为 "makeKBUILD_VERBOSE=0"。
+ 
+--- 6.8 预处理链接脚本
+ 
+         当生成vmlinux映像的时候，会使用连接器脚本arch/$(ARCH)/kernel/vmlinux。
+         这个脚本是vmlinux.lds.S文件的一个预处理变种，vmlinux.lds.S文件与这个脚本在同一    个目录下。
+         Kbuild知道.lds文件，并且包含一条*lds.S-> *lds规则。
+ 
+         例子：
+                   #arch/i386/kernel/Makefile
+                   always:= vmlinux.lds
+ 
+                   #Makefile
+                   exportCPPFLAGS_vmlinux.lds += -P -C -U$(ARCH)
+ 
+         赋给$(always)变量的等式是用来告诉kbuild建立vmlinux.lds目标。
+         赋给$(CPPFLAGS_vmlinux.lds)变量的等式是用来告诉kbuild在建立vmlinux.lds目标的时     候使用指定的选项。
+ 
+         当建立*.lds目标的时候，kbuild使用下面的这些变量：
+         KBUILD_CPPFLAGS  : 在顶层Makefile文件中设置
+         cppflags-y         : 可能在kbuild makefile文件中设置
+         CPPFLAGS_$(@F)  : 针对特定的标志.
+                           注意在这个赋值表达式中使用文件全名。
+ 
+         针对*lds文件的kbuild机制在一些体系相关的文件中使用。
+ 
+ 
+=== 7 Kbuild 变量
+ 
+顶层Makefile导出了下列的一些变量：
+ 
+         VERSION,PATCHLEVEL, SUBLEVEL, EXTRAVERSIO
+                  
+                   这些变量定义了当前内核的版本。很少有架构的Makefiles直接使用这些变量值；                      它们应该使用$(KERNELRELEASE)变量值。
+                  
+                   $(VERSION),$(PATCHLEVEL), and $(SUBLEVEL) 定义了版本号基本的三个部分，比如                      "2","4", 和 "0"。这三个部分只能是数字。
+ 
+                   $(EXTRAVERSION)定义了一个更小的版本子级别，它一般用于还不是正式的补丁以                      及额外的补丁。它经常是一个非数字的字符串，比如"-pre4",并且它大多数情况下                           是空的。
+ 
+         KERNELRELEASE
+                  
+                   $(KERNELRELEASE)是一个单个的字符串，比如"2.4.0-pre4"，它适合作为安装目录名          或者在版本号中出现。一些架构的Makefiles就基于这些目的使用了它。
+ 
+         ARCH
+ 
+                   这个变量在目标夹头中定义，比如”i386”，”arm”，或者”sparc”。一些kbuild makefiles                通过检查$(ARCH)变量来决定编译哪些文件。
+ 
+                   默认情况下，顶层Makefile文件将$(ARCH)的值设置为与主机系统架构相等。在交                      叉编译的时候，用户可以通过下面的命令行来改写$(ARCH)变量的值：
+ 
+                            makeARCH=m68k ...
+ 
+         INSTALL_PATH
+ 
+                   这个变量定义了一个架构Makefiles安装固定内核映像和System.map文件的地方。
+             体系相关的安装目标可以使用这个目标。
+ 
+         INSTALL_MOD_PATH,MODLIB
+ 
+                   为了进行模块安装，$(INSTALL_MOD_PATH)为$(MODLIB)指定了一个前缀。这个变量                   没有在Makefile中定义，但是用户愿意的话可以将它传入Makefile中。
+ 
+                   $(MODLIB)指定了模块安装的目录。
+                   顶层Makefile为$(INSTALL_MOD_PATH)/lib/modules/$(KERNELRELEASE)定义了                         $(MODLIB)变量。用户如果愿意的话可以通过命令行来改写这个值。
+ 
+         INSTALL_MOD_STRIP
+ 
+                   如果这个变量被指定了，那么将导致模块在安装之后被去除。如果                                          INSTALL_MOD_STRIP的值为‘1’，那么会使用默认的选项--strip-debug。否则，                      INSTALL_MOD_STRIP将会被作为strip命令的选项。
+ 
+ 
+=== 8 Makefile 语言
+ 
+内核 Makefiles被设计成使用GNU Make运行。Makefiles只使用GNU Make定义的功能，但是它们使用了许多GNU的扩展功能。
+ 
+GNU Make支持基本的list-processing功能。内核Makefiles使用一些样式新颖的列表来建立和操作一些"if"语句。
+ 
+GNU Make有两个赋值操作符，":="和"=" 。":="立即计算出等式右边的值，并且储存一个实际的字符串到等式左边。"="就像一个规则定义；它将等式右边直接储存到等式左边而不计算出实际的值，当每次使用等式左边的值时再去计算出实际的值。
+ 
+有一些情况使用"="是合适的。但是大多数情况下使用":="是合适的选择。
+ 
+ 
+=== 9贡献者
+ 
+原始的版本由Michael Elizabeth Chastain 提供，<发送邮件至 : mec@shout.net>
+Kai Germaschewski进行了更新 kai@tp1.ruhr-uni-bochum.de
+Sam Ravnborg 进行了更新 sam@ravnborg.org
+文本质量保证由Jan Engelhardt 担任jengelh@gmx.de
+ 
+=== 10 下一步的工作
+ 
+- 描述kbuild怎么使用_shipped来支持shipped文件
+- 生成offset头文件
+- 增加更多的变量到 section 7？

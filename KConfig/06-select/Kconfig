@@ -1,0 +1,80 @@
+mainmenu "This is MainMenu Configuration"
+
+comment "User config A"
+
+config USER_CONFIG_A1
+    bool "This User Config A1"
+    default y
+    select USER_CONFIG_A2
+    select USER_CONFIG_A3
+    imply  USER_CONFIG_A4
+    imply  USER_CONFIG_A5
+    imply  USER_CONFIG_A6
+    ---help---
+        User Config A1
+
+config USER_CONFIG_A2
+    bool "This User Config A2"
+    ---help---
+        User Config A2
+
+config USER_CONFIG_A3
+    bool "This User Config A3"
+    ---help---
+        User Config A3
+
+config USER_CONFIG_A4
+    bool "This User Config A4"
+    default y
+    ---help---
+        User Config A4
+
+config USER_CONFIG_A5
+    bool "This User Config A5"
+    default y
+    ---help---
+        User Config A5
+
+config USER_CONFIG_A6
+    bool "This User Config A6"
+    ---help---
+        User Config A6
+
+comment "User config B"
+
+config USER_CONFIG_B1
+    bool "This User Config B1"
+    select USER_CONFIG_B2
+    select USER_CONFIG_B3
+    imply  USER_CONFIG_B4
+    imply  USER_CONFIG_B5
+    imply  USER_CONFIG_B6
+    ---help---
+        User Config B1
+
+config USER_CONFIG_B2
+    bool "This User Config B2"
+    ---help---
+        User Config B2
+
+config USER_CONFIG_B3
+    bool "This User Config B3"
+    ---help---
+        User Config B3
+
+config USER_CONFIG_B4
+    bool "This User Config B4"
+    default y
+    ---help---
+        User Config B4
+
+config USER_CONFIG_B5
+    bool "This User Config B5"
+    default y
+    ---help---
+        User Config B5
+
+config USER_CONFIG_B6
+    bool "This User Config B6"
+    ---help---
+        User Config B6

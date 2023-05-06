@@ -1,0 +1,32 @@
+mainmenu "This is MainMenu Configuration"
+
+config USER_CONFIG1
+    bool "This User Config 1"
+    ---help---
+        User Config 1
+
+config USER_CONFIG2
+    bool "This User Config 2"
+    default y
+    ---help---
+        User Config 2
+
+config USER_CONFIG3
+    bool "This User Config 3"
+    ---help---
+        User Config 3
+
+config USER_CONFIG4
+    bool "This User Config 4"
+    ---help---
+        User Config 4
+
+config USER_CONFIG5
+    bool "This User Config 5"
+    ---help---
+        User Config 5
+
+config USER_CONFIG6
+    bool "This User Config 6"
+    ---help---
+        User Config 6

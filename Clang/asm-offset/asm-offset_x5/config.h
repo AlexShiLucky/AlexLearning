@@ -1,0 +1,12 @@
+#ifndef __CONFIG_H
+#define __CONFIG_H
+/*
+ * DO NOT MODIFY.
+ *
+ * This file was auto generated.
+ *
+ */
+
+#define CONFIG_GEN_ASCII 0
+
+#endif

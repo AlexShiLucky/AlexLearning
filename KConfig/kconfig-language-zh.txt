@@ -1,0 +1,272 @@
+介绍
+------------
+ 
+配置数据库是组织在一个树结构里面的配置选项的集合。
+ 
++- 代码成熟级别选项
+       |  +- 对于开发和/或不完整的代码/驱动 的提示
+       +-通用配置
+       |  +- 网络支持
+       |  +- System V 进程通信机制
+       |  +- BSD 程序计数器
+       |  +- Sysctl支持
+       +-可装载模块支持
+       |  +- 使能可装载模块支持
+       |     +- 在所有模块标记上设置版本信息
+       |     +- 内核模块装载
+       +-...
+ 
+每个入口都有它的依赖。这些依赖性用来决定入口的是否可见。只有当父入口是可见的，它的子入口才能是可见的。
+ 
+菜单入口
+------------
+ 
+大多数入口在Kconfig文件中都定义了一个配置选项；所有其它的入口都用来组织这些配置选项。一个典型的配置选项是这样定义的：
+ 
+config MODVERSIONS
+       bool"Set version information on all module symbols"
+       dependson MODULES
+       help
+         Usually, modules have to be recompiledwhenever you switch to a new
+         kernel. ...
+ 
+每一行都以一个关键字开头，并且后面可以跟多个参数。一个新的配置入口是以“config”关键字开始的。接下来的数行是对这个配置选项的属性定义。属性可以是类型、输入提示、依赖项、帮助文档以及默认值。一个配置选项用相同的名字定义多次，但是每次定义的输入提示和类型都必须不一样。
+ 
+菜单属性
+--------------
+ 
+一个菜单入口可以有多个属性。不是所有的属性在任何地方都会有效。
+ 
+- 类型定义："bool"/"tristate"/"string"/"hex"/"int"
+ 每个配置选项必须都有一个类型。在上面这几个类型中其实只有两个基本类型：tirstate和string；其它的类型都是基于这两种属性的。类型定义的时候可以接受一个输入提示（也可以单独使用一个提示属性），所以下面的这两个例子是等价的：
+ 
+       bool"Networking support"
+ 和
+       bool
+       prompt"Networking support"
+ 
+- 输入提示："prompt" <prompt> ["if" <expr>]
+  每个菜单入口最多只能有一个展示给用户看的输入提示，可以使用“if”来表示输入提示的依赖性，这个依赖性是可选的。
+ 
+- 默认值: "default" <expr> ["if" <expr> ]
+  一个配置选项可以有任意多个默认值。如果存在多个默认值，只有第一个定义的默认值才是有效的。默认值可以定义在菜单入口的任何位置。这就意味着默认值可以在配置选项的其它地方再定义或者被之前的默认值定义给覆盖。
+ 
+  只有当用户没有给配置标记赋值的时候(通过上面的输入提示)，才会使用这个默认值来进行赋值。如果一个用户提示是可见的，那样用户就能看到默认值，并且可以输入一个值将默认值覆盖。
+  与输入提示一样，可以使用“if”来表示默认值的依赖性，这个依赖性是可选的。
+ 
+- 类型定义+ 默认值：
+  "def_bool"/"def_tristate"<expr> ["if" <expr>]
+  这是一个类型定义加上一个默认值的速记符号。
+  如果使用依赖性，可以使用“if”来表示
+ 
+- 依赖项: "depends on" <expr>
+  依赖项给菜单入口定义了一个依赖规则。如果有多个依赖项，它们将使用‘&&’符号进行连接。依赖性对菜单入口中的其它选项都有效（这个菜单如果也接受一个“if”表达式），所以下面这两个例子是等价的：
+ 
+     bool"foo" if BAR
+       default y if BAR
+  和
+        depends on BAR
+        bool "foo"
+        default y
+ 
+- 反向依赖项: "select" <symbol> ["if" <expr>]
+  一个正常的依赖项可以降低symbol的上限值，而反向依赖项则用来给一个symbol限定一个下限值。当前菜单symbol的值是当前可以设定的<symbol>最小值。如果<symbol>被选择了多次，那么它的值限定为最大的那一个。
+  只有boolean和tristate类型的symbol可以使用反向依赖。
+ 
+  注意：
+       应该非常小心使用反向依赖。反向依赖会给symbol强制赋一个值而不受正常依赖项的限制。滥用反向依赖会导致一个symbolF00被选择，即使F00的依赖项BAR没有被选择。
+       一般情况下只有不可访问的symbol和没有正向依赖项的symbol才使用反向依赖项。虽然这样限制了反向依赖的用途，但是从另一方面来说，这样阻止了大量的非法配置。
+ 
+- 数值范围: "range" <symbol> <symbol> ["if"<expr>]
+  这个属性可以用来限定int和hex类型symbol的输入值。用户只能输入一个大于等于第一个symbol的值，并且小于等于第二个symbol的值。
+ 
+- 帮助文本: "help" or "---help---"
+  这个属性定义了一个帮助文本。帮助文本的结尾是根据缩进级别来决定的，这就意味着如果帮助文本中某一行相对于第一行有更小的缩进，那么这一行就是帮助文档的最后一行。
+  "---help---"和“help”在使用功能上没有区别，"---help---"是用来作为对开发者的一种提示，它显式区别于文档中的配置选项“help”。
+ 
+- 其它选项: "option" <symbol>[=<value>]
+  各种不常见的选项的通过这个选项来定义，比如修改菜单入口的行为和配置symbol。下面这些配置当前是允许的：
+ 
+  -"defconfig_list"
+  这个选项定义了一系列默认入口，当使用默认配置时可以从这里寻找（当主.config文件不存在时会使用默认配置）
+ 
+  -"modules"
+  这个选项声明了一个symbol将被当做MODULES symbol，MODULES symbol是所有配置symbol的第三种模块化状态。
+ 
+  -"env"=<value>
+  这个选项导入了一个环境变量到Kconfig中。环境变量就像是Kconfig中的一个默认值，但是它是从外部环境中导入的。正因为它从外部环境导入，所以赋值的这个时候它相对于正常的默认值来说是没有定义的。这个symbol当前没有导出到构建环境中（如果想要这样的话，可以通过另一个symbol导出）
+ 
+Menu dependencies
+-----------------
+ 
+依赖项定义了菜单入口的可见性，同时可以减小tristate symbol的输入范围。表达式中的tirstate逻辑比boolean逻辑多一个状态，这个状态用来表示模块的状态。依赖表达式具有如下的语法：
+ 
+<expr> ::= <symbol>                             (1)
+          <symbol> '=' <symbol>                (2)
+          <symbol> '!=' <symbol>                (3)
+           '('<expr> ')'                          (4)
+           '!'<expr>                            (5)
+          <expr> '&&' <expr>                   (6)
+          <expr> '||' <expr>                      (7)
+ 
+表达式以降序的顺序排列在下面。
+ 
+（1）       将一个symbol转换成表达式。Boolean和tristate symbol简单地转换成相应的表达式值。其它类型的symbol就转换成‘n’。
+（2）       如果两个symbol的值相等，就返回‘y’，否则返回‘n’。
+（3）       如果两个symbo的值不相等，就返回‘n’，否则返回‘y’。
+（4）       返回表达式的值。用来覆盖之前的值
+（5）       返回(2-/expr/)表达式的值
+（6）       返回min(/expr/, /expr/)表达式的值
+（7）       返回max(/expr/, /expr/)表达式的值
+ 
+一个表达式的值可以是'n','m' or 'y'（或者相对于0,1,2）。当表达式的值是m或者y的时候，菜单入口就是可见的。
+ 
+存在两种类型的symbol：常数symbol和非常数symbol。非常数symbol是最常见的一类symbol，定义的时候使用‘config’来声明。非常数symbol由字母和下划线组成。
+常数symbol只是表达式的一部分。常数symbol通常被单引号或者双引号包围着。在引号中，任何字母都是允许的，并且可以使用‘\’进行转移。
+ 
+菜单结构
+--------------
+ 
+菜单入口位置在结构树中的定义有两种方式。第一种方式是明确地进行指定：
+ 
+menu "Network device support"
+       depends on NET
+ 
+config NETDEVICES
+       ...
+ 
+endmenu
+ 
+所有位于“menu”…和“endmenu”之间的入口都是"Network device support"的一个子菜单入口。所有的子入口都继承了菜单入口的依赖项，例如，依赖项”NET”就会被加入到子菜单”NETDEVICES”的依赖项列表中。
+ 
+另外一种生成菜单结构的方法是通过分析依赖项。如果一个菜单入口依赖依赖于前一个入口，那么它就是前一个入口的一个子菜单。首先，之前的（父）symbol一定位于子入口的依赖列表中，其次，下面两个条件中有一个必须是真的：
+- 子入口必须是不可见的，当父symbol被设置成’n’
+- 子入口必须是可见的，当父菜单是可见的
+ 
+config MODULES
+       bool"Enable loadable module support"
+ 
+config MODVERSIONS
+       bool"Set version information on all module symbols"
+       depends on MODULES
+ 
+comment "module support disabled"
+       depends on !MODULES
+ 
+MODVERSIONS 直接依赖于 MODULES，这意味着它只有当MODULES的值不是’n’的时候才是可见的。如果MODULES是可见的，那么comment也是可见的（MODULES的依赖关系也是comment依赖项的一部分）。
+ 
+ 
+Kconfig 语法
+--------------
+ 
+这个配置文件描述了一系列的菜单入口，文件中的每一行都以一个关键字开头（除了帮助文本）。下面的关键字用来结束一个菜单入口：
+- config
+- menuconfig
+- choice/endchoice
+- comment
+- menu/endmenu
+- if/endif
+- source
+前面5个也用来开始一个菜单入口的定义。
+ 
+config:
+ 
+       "config"<symbol>
+       <configoptions>
+ 
+这个用来定义一个配置symbol<symbol>，并且接受上面所说的任何属性作为选项。
+ 
+menuconfig:
+       "menuconfig"<symbol>
+       <configoptions>
+ 
+这个类似于上面所说的简单配置入口，但是它给了前端一个提示：所有的子选项都应该作为一个单独的选项列表显示出来。
+ 
+choices:
+ 
+       "choice"
+       <choiceoptions>
+       <choiceblock>
+       "endchoice"
+ 
+这个定义了一个选择集合，并且接受任何上面所说的属性作为选项。选择只能是bool类型或tristate类型，并且布尔选择只允许一个单一的配置项被选中，三态选择还允许任何配置项被设置为“M”。这可以用在下面的情况：如果一个硬件存在多个驱动程序，并且只有一个驱动程序​​可以编译/加载到内核中，但所有的驱动程序可以编译成模块。
+一个choice接受另外一个选项“optional”，中允许将choice的值设为’n’，并且没有入口需要被选择。
+ 
+comment:
+ 
+       "comment"<prompt>
+       <commentoptions>
+ 
+这定义了一条在用户配置过程中显示的注释，同时会写入导出文件。它的选项options只能是依赖项。
+ 
+menu:
+ 
+       "menu"<prompt>
+       <menuoptions>
+       <menublock>
+       "endmenu"
+ 
+这定义了一个菜单块，具体情况请查看之前的“Menu structure”。它的选项options只能是依赖项。
+ 
+if:
+ 
+       "if"<expr>
+       <ifblock>
+       "endif"
+ 
+这定义了一个if块。依赖表达式<expr>将会追加到所有封闭的菜单入口中。
+ 
+source:
+ 
+       "source"<prompt>
+ 
+This reads the specified configurationfile. This file is always parsed.
+ 
+这个入口读取具体的配置文件。配置文件经常会被解析。
+ 
+mainmenu:
+ 
+       "mainmenu"<prompt>
+ 
+如果配置程序选择使用这个入口，那么它将会设置配置程序的标题栏。
+ 
+ 
+Kconfig提示
+-------------
+这是一个Kconfig提示的集合，大部分在初次看时都不是很明显，但确实很多Kconfig文件中的常用提示。
+ 
+加入通用功能，并且生成用法配置
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+这是一个常用提示用来完成一个与某些架构相关的特征/功能。
+建议使用配置变量HAVE_*来实现，这个变量被定义在一些常见的Kconfig文件中，并且被一些相关的架构文件选择。
+一个典型的例子是通用IOMAP功能的实现：
+ 
+我们将会在lib/Kconfig文件中看到：
+# Generic IOMAP is used to ...
+config HAVE_GENERIC_IOMAP
+ 
+config GENERIC_IOMAP
+       dependson HAVE_GENERIC_IOMAP && FOO
+ 
+And in lib/Makefile we would see:
+obj-$(CONFIG_GENERIC_IOMAP) += iomap.o
+ 
+在每一个使用通用IOMAP功能的架构文件中我们将会看到类似于下面的配置选项：
+ 
+config X86
+       select...
+       selectHAVE_GENERIC_IOMAP
+       select...
+ 
+注意：我们使用已经存在的配置选项并且避免创建一个新的配置变量来选择HAVE_GENERIC_IOMAP。
+ 
+注意：内部配置变量HAVE_GENERIC_IOMAP的使用是用来克服”select”的缺陷的，反向依赖会强制赋给配置选项’y’，而不管它的正常依赖项。
+正常的依赖项被移动到GENERIC_IOMAP中，这就避免了配置选项被强制赋给’y’值。
+ 
+只生成模块
+~~~~~~~~~~~~~~~~~~~~
+为了限制一个组件只生成模块，限制它的配置选项为"depends on m".比如：
+config FOO
+       dependson BAR && m
+ 
+限制 FOO 生成一个模块 (=m) 或者不选择 (=n)

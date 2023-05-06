@@ -240,4 +240,4 @@ run-%: %
 # clean target
 .PHONY: clean
 clean:
-	-$(Q) $(RM) $(DIR_BUILD) $(APPS)
+	-$(Q) $(RM) $(DIR_BUILD) $(APP)

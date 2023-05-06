@@ -1,0 +1,53 @@
+mainmenu "This is MainMenu Configuration"
+
+# 用户配置B1
+menuconfig USER_CONFIG_B1
+    bool "This User Config B1"
+    default y
+    ---help---
+        User Config B1
+
+# 子菜单
+if USER_CONFIG_B1
+config USER_SUB_CONFIG_B1_1
+    bool "This User Sub Config B1_1"
+    ---help---
+        User Sub Config B1_1
+
+config USER_SUB_CONFIG_B1_2
+    bool "This User Sub Config B1_2"
+    default y
+    ---help---
+        User Sub Config B1_2
+
+config USER_SUB_CONFIG_B1_3
+    bool "This User Sub Config B1_3"
+    ---help---
+        User Config B1_3
+endif
+
+# 用户配置B2
+menuconfig USER_CONFIG_B2
+    bool "This User Config B2"
+    default n
+    ---help---
+        User Config B2
+
+# 子菜单
+if USER_CONFIG_B2
+config USER_SUB_CONFIG_B2_1
+    bool "This User Sub Config B2_1"
+    ---help---
+        User Sub Config B2_1
+
+config USER_SUB_CONFIG_B2_2
+    bool "This User Sub Config B2_2"
+    default y
+    ---help---
+        User Sub Config B2_2
+
+config USER_SUB_CONFIG_B2_3
+    bool "This User Sub Config B2_3"
+    ---help---
+        User Config B2_3
+endif

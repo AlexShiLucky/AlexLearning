@@ -1,0 +1,21 @@
+mainmenu "This is MainMenu Configuration"
+
+# 用户配置A1
+config USER_CONFIG_A1
+    bool "This User Config A1"
+    default y
+    ---help---
+        User Config A1
+
+# 子菜单
+source "subconfig_A1/Kconfig"
+
+# 用户配置A2
+config USER_CONFIG_A2
+    bool "This User Config A2"
+    default n
+    ---help---
+        User Config A2
+
+# 子菜单
+source "subconfig_A2/Kconfig"

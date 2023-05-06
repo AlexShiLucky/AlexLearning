@@ -1,0 +1,4 @@
+file.dep: a.h
+	@echo "file.dep: b.h" > file.dep
+	@echo "	@echo \"hello world.\"" >> file.dep
+	touch b.h

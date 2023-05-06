@@ -1,0 +1,103 @@
+mainmenu "This is MainMenu Configuration"
+
+# 用户配置E1
+menuconfig USER_CONFIG_E1
+    bool "This User Config E1"
+    default y
+    ---help---
+        User Config E1
+
+config USER_SUB_CONFIG_E1_1
+    bool "This User Sub Config E1_1"
+    default y
+    ---help---
+        User Sub Config E1_1
+
+config USER_SUB_CONFIG_E1_2
+    bool "This User Sub Config E1_2"
+    depends on USER_CONFIG_E1
+    ---help---
+        User Sub Config E1_2
+
+config USER_SUB_CONFIG_E1_3
+    bool "This User Sub Config E1_3"
+    depends on USER_CONFIG_E1
+    default y
+    ---help---
+        User Sub Config E1_3
+
+# 用户配置E2
+menuconfig USER_CONFIG_E2
+    bool "This User Config E2"
+    ---help---
+        User Config E2
+
+config USER_SUB_CONFIG_E2_1
+    bool "This User Sub Config E2_1"
+    default y
+    ---help---
+        User Sub Config E2_1
+
+config USER_SUB_CONFIG_E2_2
+    bool "This User Sub Config E2_2"
+    depends on USER_CONFIG_E2
+    ---help---
+        User Sub Config E2_2
+
+config USER_SUB_CONFIG_E2_3
+    bool "This User Sub Config E2_3"
+    depends on USER_CONFIG_E2
+    default y
+    ---help---
+        User Sub Config E2_3
+
+# 用户配置E3
+menuconfig USER_CONFIG_E3
+    bool "This User Config E3"
+    default y
+    ---help---
+        User Config E3
+
+config USER_SUB_CONFIG_E3_1
+    bool "This User Sub Config E3_1"
+    depends on USER_CONFIG_E3
+    default y
+    ---help---
+        User Sub Config E3_1
+
+config USER_SUB_CONFIG_E3_2
+    bool "This User Sub Config E3_2"
+    depends on USER_CONFIG_E3
+    ---help---
+        User Sub Config E3_2
+
+config USER_SUB_CONFIG_E3_3
+    bool "This User Sub Config E3_3"
+    default y
+    ---help---
+        User Sub Config E3_3
+
+# 用户配置E4
+menuconfig USER_CONFIG_E4
+    bool "This User Config E4"
+    ---help---
+        User Config E4
+
+config USER_SUB_CONFIG_E4_1
+    bool "This User Sub Config E4_1"
+    depends on USER_CONFIG_E4
+    default y
+    ---help---
+        User Sub Config E4_1
+
+config USER_SUB_CONFIG_E4_2
+    bool "This User Sub Config E4_2"
+    depends on USER_CONFIG_E4
+    ---help---
+        User Sub Config E4_2
+
+config USER_SUB_CONFIG_E4_3
+    bool "This User Sub Config E4_3"
+    default y
+    ---help---
+        User Sub Config E4_3
