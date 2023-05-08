@@ -1,0 +1,51 @@
+mainmenu "This is MainMenu Configuration"
+
+# 用户菜单A1
+menu "User menu A1"
+source "sub_A1/Kconfig"
+endmenu
+
+# 用户菜单A2
+menu "User menu A2"
+source "sub_A2/Kconfig"
+endmenu
+
+# 用户配置A3
+config USER_CONFIG_A3
+    bool "This User Config A3"
+    default y
+    ---help---
+        User Config A3
+
+# 子菜单
+if USER_CONFIG_A3
+menu "This is Sub Menu A3"
+source "sub_A3/Kconfig"
+endmenu
+endif
+
+# 用户配置A4
+menuconfig USER_CONFIG_A4
+    bool "This User Config A4"
+    default y
+    ---help---
+        User Config A4
+
+# 子菜单
+if USER_CONFIG_A4
+config USER_SUB_CONFIG_A4_1
+    bool "This User Sub Config A4_1"
+    ---help---
+        User Sub Config A4_1
+
+config USER_SUB_CONFIG_A4_2
+    bool "This User Sub Config A4_2"
+    default y
+    ---help---
+        User Sub Config A4_2
+
+config USER_SUB_CONFIG_A4_3
+    bool "This User Sub Config A4_3"
+    ---help---
+        User Config A4_3
+endif

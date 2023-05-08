@@ -1,0 +1,33 @@
+config USER_SUB_CONFIG_A2_1
+    bool "This User Sub Config A2_1"
+    ---help---
+        User Sub Config A2_1
+
+config USER_SUB_CONFIG_A2_2
+    bool "This User Sub Config A2_2"
+    default y
+    ---help---
+        User Sub Config A2_2
+
+config USER_SUB_CONFIG_A2_3
+    bool "This User Sub Config A2_3"
+    ---help---
+        User Config A2_3
+
+menu "User SubMenu A2_4"
+config USER_SUB_CONFIG_A2_4_1
+    bool "This User Sub Config A2_4_1"
+    ---help---
+        User Sub Config A2_4_1
+
+config USER_SUB_CONFIG_A2_4_2
+    bool "This User Sub Config A2_4_2"
+    default y
+    ---help---
+        User Sub Config A2_4_2
+
+config USER_SUB_CONFIG_A2_4_3
+    bool "This User Sub Config A2_4_3"
+    ---help---
+        User Config A2_4_3
+endmenu
