@@ -10,6 +10,10 @@ XOBJDUMP    := $(XNAME).objdump
 
 LINKER_SCRIPT   := $(XNAME).ld
 
+XBEGIN      :=
+XGENS       := $(XELF)
+XEND        :=
+
 ################################################################################
 ifeq ($(V),)
 Q := @
@@ -30,6 +34,7 @@ CFG_GEN_ASM                 ?= n
 CFG_GEN_OBJDUMP             ?= y
 CFG_OBJDUMP_INCLUDE_SOURCE  ?= y
 CFG_OBJDUMP_FULL_CONTENTS   ?= n
+CFG_BIN_USE_CP              ?= n
 
 ################################################################################
 # Defins
@@ -48,6 +53,8 @@ LDFLAGS         :=
 PATH_ROOT       := ..
 # 编译路径
 PATH_BUILD      := build
+# 输出路径
+PATH_BIN        := $(PATH_ROOT)/bin
 
 # 库目录
 DIRS_LIB        :=
@@ -208,31 +215,35 @@ ASM_FLAGS       := -d -t
 ################################################################################
 # 函数
 BASENAME = $(basename $<)
+DATENAME = $(basename $@)_$(shell date +%Y%m%d)$(suffix $@)
+#DATENAME = $(basename $@)_$(shell date +%Y%m%d_%H%M%S)$(suffix $@)
+
 
 ################################################################################
-.PHONY: all
-all: $(XELF)
-	@$(ECHO) [$(XELF)] build complete
-
 ifeq ($(CFG_GEN_BIN),y)
-all: $(XBIN)
+XGENS += $(XBIN)
 endif
 
 ifeq ($(CFG_GEN_HEX),y)
-all: $(XHEX)
+XGENS += $(XHEX)
 endif
 
 ifeq ($(CFG_GEN_SREC),y)
-all: $(XSREC)
+XGENS += $(XSREC)
 endif
 
 ifeq ($(CFG_GEN_ASM),y)
-all: $(XASM)
+XGENS += $(XASM)
 endif
 
 ifeq ($(CFG_GEN_OBJDUMP),y)
-all: $(XOBJDUMP)
+XGENS += $(XOBJDUMP)
 endif
+
+################################################################################
+.PHONY: all
+all: $(XBEGIN) $(XGENS) $(XEND)
+	@$(ECHO) [$(XELF)] build complete
 
 $(XELF): $(OBJS) $(LIBS_USR)
 	@$(ECHO) "[LN] $@"
@@ -245,15 +256,30 @@ endif
 
 $(XBIN): $(XELF)
 	@$(ECHO) "[GEN] $@"
+ifeq ($(CFG_BIN_USE_CP),y)
 	$(Q) $(OC) -O binary $< $@
+	@$(CP) $@ $(PATH_BIN)/$(DATENAME)
+else
+	$(Q) $(OC) -O binary $< $(PATH_BIN)/$(DATENAME)
+endif
 
 $(XHEX): $(XELF)
 	@$(ECHO) "[GEN] $@"
+ifeq ($(CFG_BIN_USE_CP),y)
 	$(Q) $(OC) -O ihex $< $@
+	@$(CP) $@ $(PATH_BIN)/$(DATENAME)
+else
+	$(Q) $(OC) -O ihex $< $(PATH_BIN)/$(DATENAME)
+endif
 
 $(XSREC): $(XELF)
 	@$(ECHO) "[GEN] $@"
+ifeq ($(CFG_BIN_USE_CP),y)
 	$(Q) $(OC) -O srec $< $@
+	@$(CP) $@ $(PATH_BIN)/$(DATENAME)
+else
+	$(Q) $(OC) -O srec $< $(PATH_BIN)/$(DATENAME)
+endif
 
 $(XASM): $(XELF)
 	@$(ECHO) "[GEN] $@"
@@ -307,6 +333,9 @@ dbg-%: %
 run-%: %
 	@./$< > run.log
 
-.PHONY: clean
+.PHONY: clean distclean
 clean:
-	-$(Q) $(RM) $(PATH_BUILD) $(XELF) $(XMAP) $(XASM) $(XOBJDUMP)
+	-$(Q) $(RM) $(PATH_BUILD) $(XELF)
+
+distclean: clean
+	-$(Q) $(RM) $(XGENS)

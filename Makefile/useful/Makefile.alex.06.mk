@@ -10,6 +10,10 @@ XOBJDUMP    := $(XNAME).objdump
 
 LINKER_SCRIPT   := $(XNAME).ld
 
+XBEGIN      :=
+XGENS       := $(XELF)
+XEND        :=
+
 ################################################################################
 ifeq ($(V),)
 Q := @
@@ -30,6 +34,7 @@ CFG_GEN_ASM                 ?= n
 CFG_GEN_OBJDUMP             ?= y
 CFG_OBJDUMP_INCLUDE_SOURCE  ?= y
 CFG_OBJDUMP_FULL_CONTENTS   ?= n
+CFG_BIN_USE_CP              ?= n
 
 ################################################################################
 # Defins
@@ -48,6 +53,8 @@ LDFLAGS         :=
 PATH_ROOT       := ..
 # 编译路径
 PATH_BUILD      := build
+# 输出路径
+PATH_BIN        := $(PATH_ROOT)/bin
 
 # 库目录
 DIRS_LIB        :=
@@ -208,31 +215,90 @@ ASM_FLAGS       := -d -t
 ################################################################################
 # 函数
 BASENAME = $(basename $<)
+DATENAME = $(basename $@)_$(shell date +%Y%m%d)$(suffix $@)
+#DATENAME = $(basename $@)_$(shell date +%Y%m%d_%H%M%S)$(suffix $@)
+
+define COMPILE.c2i
+@$(ECHO) "[CC -E] $@"
+@$(MKDIR) $(@D)
+$(Q) $(CC) -E -C $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
+endef
+
+define COMPILE.c2s
+@$(ECHO) "[CC -S] $@"
+@$(MKDIR) $(@D)
+$(Q) $(CC) -S $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
+endef
+
+define COMPILE.c2o
+@$(ECHO) "[CC] $@"
+@$(MKDIR) $(@D)
+$(Q) $(CC) $(GENDEPS) -c $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
+$(CC_POST_PROCESS)
+endef
+
+define COMPILE.cpp2i
+@$(ECHO) "[CXX -E] $@"
+@$(MKDIR) $(@D)
+$(Q) $(CXX) -E -C $(CXXFLAGS) $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
+endef
+
+define COMPILE.cpp2s
+@$(ECHO) "[CXX -S] $@"
+@$(MKDIR) $(@D)
+$(Q) $(CXX) -S $(CXXFLAGS) $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
+endef
+
+define COMPILE.cpp2o
+@$(ECHO) "[CXX] $@"
+@$(MKDIR) $(@D)
+$(Q) $(CXX) $(GENDEPS) -c $(CXXFLAGS) $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
+$(CXX_POST_PROCESS)
+endef
+
+define COMPILE.s2o
+@$(ECHO) "[AS] $@"
+@$(MKDIR) $(@D)
+$(Q) $(AS) $(GENDEPS) -c $(ASFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
+$(AS_POST_PROCESS)
+endef
 
 ################################################################################
-.PHONY: all
-all: $(XELF)
-	@$(ECHO) [$(XELF)] build complete
+
+ifeq ($(CFG_GEN_IFILES),y)
+XGENS += $(OBJS_C:%.o=%.i)
+XGENS += $(OBJS_CXX:%.o=%.i)
+endif
+
+ifeq ($(CFG_GEN_SFILES),y)
+XGENS += $(OBJS_C:%.o=%.s)
+XGENS += $(OBJS_CXX:%.o=%.s)
+endif
 
 ifeq ($(CFG_GEN_BIN),y)
-all: $(XBIN)
+XGENS += $(XBIN)
 endif
 
 ifeq ($(CFG_GEN_HEX),y)
-all: $(XHEX)
+XGENS += $(XHEX)
 endif
 
 ifeq ($(CFG_GEN_SREC),y)
-all: $(XSREC)
+XGENS += $(XSREC)
 endif
 
 ifeq ($(CFG_GEN_ASM),y)
-all: $(XASM)
+XGENS += $(XASM)
 endif
 
 ifeq ($(CFG_GEN_OBJDUMP),y)
-all: $(XOBJDUMP)
+XGENS += $(XOBJDUMP)
 endif
+
+################################################################################
+.PHONY: all
+all: $(XBEGIN) $(XGENS) $(XEND)
+	@$(ECHO) [$(XELF)] build complete
 
 $(XELF): $(OBJS) $(LIBS_USR)
 	@$(ECHO) "[LN] $@"
@@ -245,15 +311,30 @@ endif
 
 $(XBIN): $(XELF)
 	@$(ECHO) "[GEN] $@"
+ifeq ($(CFG_BIN_USE_CP),y)
 	$(Q) $(OC) -O binary $< $@
+	@$(CP) $@ $(PATH_BIN)/$(DATENAME)
+else
+	$(Q) $(OC) -O binary $< $(PATH_BIN)/$(DATENAME)
+endif
 
 $(XHEX): $(XELF)
 	@$(ECHO) "[GEN] $@"
+ifeq ($(CFG_BIN_USE_CP),y)
 	$(Q) $(OC) -O ihex $< $@
+	@$(CP) $@ $(PATH_BIN)/$(DATENAME)
+else
+	$(Q) $(OC) -O ihex $< $(PATH_BIN)/$(DATENAME)
+endif
 
 $(XSREC): $(XELF)
 	@$(ECHO) "[GEN] $@"
+ifeq ($(CFG_BIN_USE_CP),y)
 	$(Q) $(OC) -O srec $< $@
+	@$(CP) $@ $(PATH_BIN)/$(DATENAME)
+else
+	$(Q) $(OC) -O srec $< $(PATH_BIN)/$(DATENAME)
+endif
 
 $(XASM): $(XELF)
 	@$(ECHO) "[GEN] $@"
@@ -263,25 +344,26 @@ $(XOBJDUMP): $(XELF)
 	@$(ECHO) "[GEN] $@"
 	$(Q) $(OD) $(OBJDUMP_FLAGS) $< >$@
 
+$(PATH_BUILD)/%.i: $(PATH_ROOT)/%.c
+	$(COMPILE.c2i)
+
+$(PATH_BUILD)/%.i: $(PATH_ROOT)/%.cpp
+	$(COMPILE.cpp2i)
+
+$(PATH_BUILD)/%.s: $(PATH_ROOT)/%.c
+	$(COMPILE.c2s)
+
+$(PATH_BUILD)/%.s: $(PATH_ROOT)/%.cpp
+	$(COMPILE.cpp2s)
+
 $(PATH_BUILD)/%.o: $(PATH_ROOT)/%.c
-	@$(MKDIR) $(@D)
-ifeq ($(CFG_GEN_IFILES),y)
-	@$(ECHO) "[CC -E] $(<:.c=.i)"
-	$(Q) $(CC) -E -C $(CFLAGS) -o $(@:.o=.i) $<
-endif
-ifeq ($(CFG_GEN_SFILES),y)
-	@$(ECHO) "[CC -S] $(<:.c=.s)"
-	$(Q) $(CC) -S $(CFLAGS) -o $(@:.o=.s) $<
-endif
-	@$(ECHO) "[CC] $@"
-	$(Q) $(CC) $(GENDEPS) -c $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
-	$(CC_POST_PROCESS)
+	$(COMPILE.c2o)
+
+$(PATH_BUILD)/%.o: $(PATH_ROOT)/%.cpp
+	$(COMPILE.cpp2o)
 
 $(PATH_BUILD)/%.o: $(PATH_ROOT)/%.S
-	@$(ECHO) "[AS] $@"
-	@$(MKDIR) $(@D)
-	$(Q) $(AS) $(GENDEPS) -c $(ASFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
-	$(AS_POST_PROCESS)
+	$(COMPILE.s2o)
 
 $(PATH_BUILD)/lib/%.a: $(OBJS_LIB)
 	@$(ECHO) "AR: $^ -> $@"
@@ -307,6 +389,9 @@ dbg-%: %
 run-%: %
 	@./$< > run.log
 
-.PHONY: clean
+.PHONY: clean distclean
 clean:
-	-$(Q) $(RM) $(PATH_BUILD) $(XELF) $(XMAP) $(XASM) $(XOBJDUMP)
+	-$(Q) $(RM) $(PATH_BUILD) $(XELF)
+
+distclean: clean
+	-$(Q) $(RM) $(XGENS)

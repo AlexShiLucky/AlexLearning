@@ -10,6 +10,10 @@ XOBJDUMP    := $(XNAME).objdump
 
 LINKER_SCRIPT   := $(XNAME).ld
 
+XBEGIN      :=
+XGENS       := $(XELF)
+XEND        :=
+
 ################################################################################
 ifeq ($(V),)
 Q := @
@@ -210,29 +214,30 @@ ASM_FLAGS       := -d -t
 BASENAME = $(basename $<)
 
 ################################################################################
-.PHONY: all
-all: $(XELF)
-	@$(ECHO) [$(XELF)] build complete
-
 ifeq ($(CFG_GEN_BIN),y)
-all: $(XBIN)
+XGENS += $(XBIN)
 endif
 
 ifeq ($(CFG_GEN_HEX),y)
-all: $(XHEX)
+XGENS += $(XHEX)
 endif
 
 ifeq ($(CFG_GEN_SREC),y)
-all: $(XSREC)
+XGENS += $(XSREC)
 endif
 
 ifeq ($(CFG_GEN_ASM),y)
-all: $(XASM)
+XGENS += $(XASM)
 endif
 
 ifeq ($(CFG_GEN_OBJDUMP),y)
-all: $(XOBJDUMP)
+XGENS += $(XOBJDUMP)
 endif
+
+################################################################################
+.PHONY: all
+all: $(XBEGIN) $(XGENS) $(XEND)
+	@$(ECHO) [$(XELF)] build complete
 
 $(XELF): $(OBJS) $(LIBS_USR)
 	@$(ECHO) "[LN] $@"
@@ -307,6 +312,9 @@ dbg-%: %
 run-%: %
 	@./$< > run.log
 
-.PHONY: clean
+.PHONY: clean distclean
 clean:
-	-$(Q) $(RM) $(PATH_BUILD) $(XELF) $(XMAP) $(XASM) $(XOBJDUMP)
+	-$(Q) $(RM) $(PATH_BUILD) $(XELF)
+
+distclean: clean
+	-$(Q) $(RM) $(XGENS)

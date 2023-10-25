@@ -20,15 +20,17 @@ endif
 ################################################################################
 # Configurable 
 CROSS_COMPILE               ?= arm-none-eabi-
-CFG_GEN_IFILES              := n
-CFG_GEN_SFILES              := n
-CFG_GEN_BIN                 := y
-CFG_GEN_HEX                 := y
-CFG_GEN_SREC                := y
-CFG_GEN_MAP                 := y
-CFG_GEN_OBJDUMP             := y
-CFG_OBJDUMP_INCLUDE_SOURCE  := y
-CFG_OBJDUMP_FULL_CONTENTS   := y
+CFG_EASYFLASH_PLUGINS       ?= y
+CFG_GEN_IFILES              ?= n
+CFG_GEN_SFILES              ?= n
+CFG_GEN_BIN                 ?= y
+CFG_GEN_HEX                 ?= y
+CFG_GEN_SREC                ?= y
+CFG_GEN_MAP                 ?= y
+CFG_GEN_ASM                 ?= n
+CFG_GEN_OBJDUMP             ?= y
+CFG_OBJDUMP_INCLUDE_SOURCE  ?= y
+CFG_OBJDUMP_FULL_CONTENTS   ?= n
 
 ################################################################################
 # Defins
@@ -130,20 +132,26 @@ XFLAGS_OPT_F    += -fsigned-char
 XFLAGS_OPT_F    += -ffunction-sections
 XFLAGS_OPT_F    += -fdata-sections
 XFLAGS_OPT_F    += -ffreestanding
+XFLAGS_OPT_F    += -fno-move-loop-invariants
+XFLAGS_OPT_W    :=
+XFLAGS_OPT_W    += -Wunused
+XFLAGS_OPT_W    += -Wuninitialized
+XFLAGS_OPT_W    += -Wall
+XFLAGS_OPT_W    += -Wextra
 XFLAGS_OPT_O    := -O0
-XFLAGS_DEBUG    := -g3 -ggdb
-XFLAGS_WARNINGS := -Wall
+XFLAGS_DEBUG    :=
+XFLAGS_DEBUG    += -g0 -ggdb
+#XFLAGS_DEBUG    += -g3 -ggdb
 XFLAGS_DIRS_INC := $(DIRS_INC:%=-I%)
 XFLAGS_DSYMS    := $(DSYMS:%=-D%)
 XFLAGS_USYMS    :=
 
 ################################################################################
 # 追加ASFLAGS参数
+ASFLAGS         += -x assembler-with-cpp
 ASFLAGS         += $(XFLAGS_OPT_M)
-#ASFLAGS         += $(XFLAGS_OPT_F)
-#ASFLAGS         += $(XFLAGS_DEBUG)
-#ASFLAGS         += $(XFLAGS_WARNINGS)
-#ASFLAGS         += $(XFLAGS_DIRS_INC)
+ASFLAGS         += $(XFLAGS_OPT_W)
+ASFLAGS         += $(XFLAGS_DIRS_INC)
 ASFLAGS         += $(XFLAGS_DSYMS)
 
 ################################################################################
@@ -151,9 +159,9 @@ ASFLAGS         += $(XFLAGS_DSYMS)
 CFLAGS          += $(XFLAGS_STD)
 CFLAGS          += $(XFLAGS_OPT_M)
 CFLAGS          += $(XFLAGS_OPT_F)
+CFLAGS          += $(XFLAGS_OPT_W)
 CFLAGS          += $(XFLAGS_OPT_O)
 CFLAGS          += $(XFLAGS_DEBUG)
-CFLAGS          += $(XFLAGS_WARNINGS)
 CFLAGS          += $(XFLAGS_DIRS_INC)
 CFLAGS          += $(XFLAGS_DSYMS)
 CFLAGS          += $(XFLAGS_USYMS)
@@ -203,51 +211,45 @@ ASM_FLAGS       := -d -t
 BASENAME = $(basename $<)
 
 define COMPILE.c2i
-@$(ECHO) "[CC -E] $< -> $@"
+@$(ECHO) "[CC -E] $@"
 @$(MKDIR) $(@D)
 $(Q) $(CC) -E -C $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
 endef
 
 define COMPILE.c2s
-@$(ECHO) "[CC -S] $< -> $@"
+@$(ECHO) "[CC -S] $@"
 @$(MKDIR) $(@D)
 $(Q) $(CC) -S $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
 endef
 
 define COMPILE.c2o
-@$(ECHO) "[CC] $< -> $@"
+@$(ECHO) "[CC] $@"
 @$(MKDIR) $(@D)
 $(Q) $(CC) $(GENDEPS) -c $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
 $(CC_POST_PROCESS)
 endef
 
 define COMPILE.cpp2i
-@$(ECHO) "[CXX -E] $< -> $@"
+@$(ECHO) "[CXX -E] $@"
 @$(MKDIR) $(@D)
 $(Q) $(CXX) -E -C $(CXXFLAGS) $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
 endef
 
 define COMPILE.cpp2s
-@$(ECHO) "[CXX -S] $< -> $@"
+@$(ECHO) "[CXX -S] $@"
 @$(MKDIR) $(@D)
 $(Q) $(CXX) -S $(CXXFLAGS) $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
 endef
 
 define COMPILE.cpp2o
-@$(ECHO) "[CXX] $< -> $@"
+@$(ECHO) "[CXX] $@"
 @$(MKDIR) $(@D)
 $(Q) $(CXX) $(GENDEPS) -c $(CXXFLAGS) $(CFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
 $(CXX_POST_PROCESS)
 endef
 
-# If assembling with the compiler, ensure "-Wa," is prepended to all APP_ASFLAGS
-ifeq ($(AS),$(patsubst %as,%,$(AS)))
-COMMA := ,
-ASFLAGS := $(filter-out $(CFLAGS),$(addprefix -Wa$(COMMA),$(patsubst -Wa$(COMMA)%,%,$(ASFLAGS))))
-endif
-
 define COMPILE.s2o
-@$(ECHO) "[AS] $< -> $@"
+@$(ECHO) "[AS] $@"
 @$(MKDIR) $(@D)
 $(Q) $(AS) $(GENDEPS) -c $(ASFLAGS) $($(BASENAME)_FLAGS) -o $@ $<
 $(AS_POST_PROCESS)
@@ -259,11 +261,11 @@ all: $(XELF)
 	@$(ECHO) [$(XELF)] build complete
 
 ifeq ($(CFG_GEN_IFILES),y)
-all : $(OBJS:%.o=%.i)
+all: $(OBJS:%.o=%.i)
 endif
 
 ifeq ($(CFG_GEN_SFILES),y)
-all : $(OBJS:%.o=%.s)
+all: $(OBJS:%.o=%.s)
 endif
 
 ifeq ($(CFG_GEN_BIN),y)
@@ -278,8 +280,12 @@ ifeq ($(CFG_GEN_SREC),y)
 all: $(XSREC)
 endif
 
+ifeq ($(CFG_GEN_ASM),y)
+all: $(XASM)
+endif
+
 ifeq ($(CFG_GEN_OBJDUMP),y)
-all : $(XOBJDUMP) $(XASM)
+all: $(XOBJDUMP)
 endif
 
 $(XELF): $(OBJS) $(LIBS_USR)
@@ -303,13 +309,13 @@ $(XSREC): $(XELF)
 	@$(ECHO) "[GEN] $@"
 	$(Q) $(OC) -O srec $< $@
 
-$(XOBJDUMP): $(XELF)
-	@$(ECHO) "[GEN] $@"
-	$(Q) $(OD) $(OBJDUMP_FLAGS) $< >$@
-
 $(XASM): $(XELF)
 	@$(ECHO) "[GEN] $@"
 	$(Q) $(OD) $(ASM_FLAGS) $< >$@
+
+$(XOBJDUMP): $(XELF)
+	@$(ECHO) "[GEN] $@"
+	$(Q) $(OD) $(OBJDUMP_FLAGS) $< >$@
 
 $(PATH_BUILD)/%.i: $(PATH_ROOT)/%.c
 	$(COMPILE.c2i)
